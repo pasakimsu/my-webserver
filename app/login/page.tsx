@@ -24,8 +24,8 @@ export default function LoginPage() {
       const querySnapshot = await getDocs(q);
 
       if (!querySnapshot.empty) {
-        localStorage.setItem("isLoggedIn", "true"); // 로그인 상태 저장
-        router.push("/budget"); // 로그인 후 가계부 페이지로 이동
+        localStorage.setItem("isLoggedIn", "true");
+        router.push("/budget");
       } else {
         setError("아이디 또는 비밀번호가 올바르지 않습니다.");
       }
@@ -36,28 +36,25 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-lg">
+    <div className="flex min-h-screen items-center justify-center">
+      <div className="w-full max-w-md p-6 bg-[#1a1a1a] rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-center mb-4">로그인</h2>
         <input
           type="text"
           placeholder="아이디"
-          className="w-full p-3 mb-3 border border-gray-400 rounded"
+          className="w-full p-3 mb-3"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
         />
         <input
           type="password"
           placeholder="비밀번호"
-          className="w-full p-3 mb-3 border border-gray-400 rounded"
+          className="w-full p-3 mb-3"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-        <button
-          onClick={handleLogin}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition duration-300"
-        >
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+        <button onClick={handleLogin} className="w-full">
           로그인
         </button>
       </div>

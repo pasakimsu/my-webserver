@@ -5,20 +5,50 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* 기본 색상 설정 (다크 모드 우선 적용) */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #0a0a0a; /* 다크 테마 기본 배경 */
+  --foreground: #ededed; /* 기본 글자색 */
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: light) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #ffffff;
+    --foreground: #171717;
   }
 }
 
+/* 전체 적용 */
 body {
   color: var(--foreground);
   background: var(--background);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* 입력 필드 & 버튼 스타일 */
+input, button {
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 16px;
+}
+
+input {
+  background: #1a1a1a; /* 다크 테마 입력 필드 */
+  color: #ffffff;
+  border: 1px solid #444;
+}
+
+input::placeholder {
+  color: #888;
+}
+
+button {
+  background: #007bff;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #0056b3;
 }
