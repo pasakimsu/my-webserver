@@ -139,6 +139,32 @@ export default function BudgetPage() {
 
           <h2 className="text-2xl font-bold text-center mb-4 text-white">가계부 계산기</h2>
 
+          {/* 년월 선택 */}
+          <div className="flex gap-2 mb-3">
+            <select
+              className="p-2 bg-gray-700 text-white border border-gray-600 rounded"
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+            >
+              {[...Array(5)].map((_, i) => {
+                const y = new Date().getFullYear() - i;
+                return <option key={y} value={y}>{y}년</option>;
+              })}
+            </select>
+
+            <select
+              className="p-2 bg-gray-700 text-white border border-gray-600 rounded"
+              value={month}
+              onChange={(e) => setMonth(e.target.value)}
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
+                <option key={m} value={m.toString().padStart(2, "0")}>
+                  {m}월
+                </option>
+              ))}
+            </select>
+          </div>
+
           {/* 5일 수당 & 20일 월급 입력 */}
           <label className="text-white text-sm">5일 수당</label>
           <input
@@ -163,23 +189,6 @@ export default function BudgetPage() {
             <p className="text-gray-400 text-sm mb-3">
               한글 금액: {numberToKorean(totalSalary)}
             </p>
-          )}
-
-          <button
-            onClick={handleCalculate}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition duration-300 mb-3"
-          >
-            계산하기
-          </button>
-
-          {/* 계산 결과 출력 */}
-          {allocated.생활비 > 0 && (
-            <div className="mt-4 p-4 bg-gray-700 rounded-lg">
-              <p>생활비: <strong>{allocated.생활비.toLocaleString()}원</strong> ({accountNumbers.생활비})</p>
-              <p>적금: <strong>{allocated.적금.toLocaleString()}원</strong> ({accountNumbers.적금})</p>
-              <p>투자: <strong>{allocated.투자.toLocaleString()}원</strong> ({accountNumbers.투자})</p>
-              <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
-            </div>
           )}
 
           <button
