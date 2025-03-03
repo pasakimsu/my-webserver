@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { db, collection, query, where, getDocs } from "@/lib/firebase";
 import ProtectedRoute from "@/components/ProtectedRoute";
-import BudgetDateSelector from "@/components/BudgetDateSelector";
-import BudgetComparisonTable from "@/components/BudgetComparisonTable";
+import BudgetDateSelector from "../components/BudgetDateSelector";
+import BudgetComparisonTable from "../components/BudgetComparisonTable";
 
 export default function BudgetComparePage() {
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
