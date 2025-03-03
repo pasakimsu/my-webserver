@@ -43,9 +43,9 @@ export default function BudgetPage() {
     가족: "1000-8345-4263(토스)",
   };
 
-  // 로그인 여부 확인
+  // 로그인 여부 확인 및 사용자 정보 가져오기
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId"); // 사용자 ID 저장
+    const storedUserId = localStorage.getItem("userId"); // 로그인한 사용자 ID 가져오기
     if (!storedUserId) {
       router.push("/login");
     } else {
@@ -111,6 +111,14 @@ export default function BudgetPage() {
     <ProtectedRoute>
       <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
         <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
+          
+          {/* 로그인한 사용자 표시 */}
+          {userId && (
+            <div className="text-white text-center mb-4">
+              <p className="text-lg font-semibold">{userId}님이 로그인했습니다.</p>
+            </div>
+          )}
+
           <h2 className="text-2xl font-bold text-center mb-4 text-white">가계부 계산기</h2>
 
           {/* 년월 선택 */}
