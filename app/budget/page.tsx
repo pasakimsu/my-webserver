@@ -32,7 +32,7 @@ const numberToKorean = (num: number): string => {
 export default function BudgetPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [year] = useState<string>("2025"); // 2025년 고정
+  const [year] = useState<string>("2025");
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
   const [allowance, setAllowance] = useState<string>("");
   const [salary, setSalary] = useState<string>("");
@@ -46,7 +46,14 @@ export default function BudgetPage() {
   const [userBudgets, setUserBudgets] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
 
-  // 로그인 여부 확인
+  // 계좌번호 추가
+  const accountNumbers = {
+    생활비: "1000-8998-1075(토스)",
+    적금: "1001-0319-4099(토스)",
+    투자: "321-8556-5901(kb증권)",
+    가족: "1000-8345-4263(토스)",
+  };
+
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     if (!storedUserId) {
@@ -56,7 +63,6 @@ export default function BudgetPage() {
     }
   }, [router]);
 
-  // Firebase에서 특정 월 데이터 가져오기
   useEffect(() => {
     const fetchBudgets = async () => {
       setLoading(true);
@@ -82,7 +88,6 @@ export default function BudgetPage() {
     fetchBudgets();
   }, [month]);
 
-  // 5일 수당 입력값 변경
   const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/,/g, "");
     const numValue = Number(rawValue);
@@ -92,7 +97,6 @@ export default function BudgetPage() {
     }
   };
 
-  // 20일 월급 입력값 변경
   const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/,/g, "");
     const numValue = Number(rawValue);
@@ -102,14 +106,12 @@ export default function BudgetPage() {
     }
   };
 
-  // 총 급여 업데이트 (5일 수당 + 20일 월급)
   const updateTotalSalary = (allowanceValue: string | number, salaryValue: string | number) => {
     const rawAllowance = Number(typeof allowanceValue === "string" ? allowanceValue.replace(/,/g, "") : allowanceValue);
     const rawSalary = Number(typeof salaryValue === "string" ? salaryValue.replace(/,/g, "") : salaryValue);
     setTotalSalary(rawAllowance + rawSalary);
   };
 
-  // 월급 분배 계산
   const handleCalculate = () => {
     if (totalSalary <= 0) return;
     setAllocated({
@@ -120,7 +122,6 @@ export default function BudgetPage() {
     });
   };
 
-  // Firebase에 데이터 저장
   const handleSave = async () => {
     if (!userId) {
       alert("로그인이 필요합니다.");
@@ -138,8 +139,8 @@ export default function BudgetPage() {
         userId,
         year,
         month,
-        allowance: Number(allowance.replace(/,/g, "")), // 5일 수당
-        salary: Number(salary.replace(/,/g, "")), // 20일 월급
+        allowance: Number(allowance.replace(/,/g, "")),
+        salary: Number(salary.replace(/,/g, "")),
         totalSalary,
         allocations: allocated,
         timestamp: new Date(),
@@ -166,47 +167,11 @@ export default function BudgetPage() {
           />
           {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
           <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">계산하기</button>
-          <BudgetSummary allocated={allocated} accountNumbers={{ 생활비: "", 적금: "", 투자: "", 가족: "" }} />
+          <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
           <BudgetSaveButton onSave={handleSave} />
           {loading ? <p className="text-white mt-6">데이터 불러오는 중...</p> : <BudgetComparisonTable userBudgets={userBudgets} />}
         </div>
       </div>
     </ProtectedRoute>
   );
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      setLoading(true);
-      try {
-        console.log(`Fetching data for 2025-${month}...`); // 디버깅용 로그 추가
-  
-        const q = query(collection(db, "budgets"), where("year", "==", "2025"), where("month", "==", month));
-        const querySnapshot = await getDocs(q);
-  
-        if (querySnapshot.empty) {
-          console.log("No data found for this month.");
-        }
-  
-        const budgets = querySnapshot.docs.map((doc) => ({
-          userId: doc.data().userId,
-          생활비: doc.data().allocations.생활비 || 0,
-          적금: doc.data().allocations.적금 || 0,
-          투자: doc.data().allocations.투자 || 0,
-          가족: doc.data().allocations.가족 || 0,
-        }));
-  
-        setUserBudgets(budgets);
-      } catch (error) {
-        console.error("데이터 불러오기 실패:", error);
-      }
-      setLoading(false);
-    };
-  
-    fetchBudgets();
-  }, [month]);
-  {loading ? (
-    <p className="text-white mt-6">데이터 불러오는 중...</p>
-  ) : (
-    <BudgetComparisonTable userBudgets={userBudgets} />
-  )}
-  
 }
