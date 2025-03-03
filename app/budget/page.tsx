@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { db, collection, doc, setDoc } from "@/lib/firebase";
+import { db, doc, setDoc } from "@/lib/firebase";
 import ProtectedRoute from "@/components/ProtectedRoute"; // 로그인 보호 컴포넌트 추가
 
 // 숫자를 한글 금액으로 변환하는 함수
@@ -93,6 +93,38 @@ export default function BudgetPage() {
     });
   };
 
+  // Firebase에 데이터 저장
+  const handleSave = async () => {
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (totalSalary <= 0) {
+      alert("올바른 수당과 월급을 입력하세요.");
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
+      await setDoc(docRef, {
+        userId,
+        year,
+        month,
+        allowance: Number(allowance.replace(/,/g, "")), // 5일 수당
+        salary: Number(salary.replace(/,/g, "")), // 20일 월급
+        totalSalary,
+        allocations: allocated,
+        timestamp: new Date(),
+      });
+
+      alert("저장되었습니다.");
+    } catch (error) {
+      console.error("저장 실패:", error);
+      alert("저장 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
@@ -149,6 +181,13 @@ export default function BudgetPage() {
               <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
             </div>
           )}
+
+          <button
+            onClick={handleSave}
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded transition duration-300 mt-3"
+          >
+            저장하기
+          </button>
         </div>
       </div>
     </ProtectedRoute>
