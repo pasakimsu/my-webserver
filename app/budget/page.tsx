@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
+import ProtectedRoute from "@/components/ProtectedRoute"; // 로그인 보호 컴포넌트 추가
 
 // 숫자를 한글 금액으로 변환하는 함수
 const numberToKorean = (num: number): string => {
@@ -22,7 +22,6 @@ const numberToKorean = (num: number): string => {
 };
 
 export default function BudgetPage() {
-  const router = useRouter();
   const [salary, setSalary] = useState<string>("");
   const [allocated, setAllocated] = useState({
     생활비: 0,
@@ -36,22 +35,13 @@ export default function BudgetPage() {
     적금: "1001-0319-4099(토스)",
     투자: "321-8556-5901(kb증권)",
     가족: "1000-8345-4263(토스)",
-
   };
-
-  // 로그인 여부 확인
-  useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn");
-    if (!isLoggedIn) {
-      router.push("/login");
-    }
-  }, []);
 
   // 입력값 변경 시 천 단위 콤마(,) 적용 및 한글 변환
   const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/,/g, ""); // 기존 콤마 제거
     const numValue = Number(rawValue);
-    
+
     if (!isNaN(numValue)) {
       setSalary(numValue.toLocaleString()); // 천 단위 콤마 추가
     }
@@ -70,33 +60,37 @@ export default function BudgetPage() {
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
-      <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
-        <h2 className="text-2xl font-bold text-center mb-4 text-white">가계부 계산기</h2>
-        <input
-          type="text"
-          placeholder="월급을 입력하세요"
-          className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
-          value={salary}
-          onChange={handleSalaryChange}
-        />
-        {/* 입력된 숫자를 한글 금액으로 변환하여 표시 */}
-        {salary && (
-          <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(Number(salary.replace(/,/g, "")))}</p>
-        )}
-        <button
-          onClick={handleCalculate}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition duration-300"
-        >
-          계산하기
-        </button>
-        <div className="mt-4 p-4 bg-gray-700 rounded-lg">
-          <p>생활비: <strong>{allocated.생활비.toLocaleString()}원</strong> ({accountNumbers.생활비})</p>
-          <p>적금: <strong>{allocated.적금.toLocaleString()}원</strong> ({accountNumbers.적금})</p>
-          <p>투자: <strong>{allocated.투자.toLocaleString()}원</strong> ({accountNumbers.투자})</p>
-          <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
+    <ProtectedRoute>
+      <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
+        <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
+          <h2 className="text-2xl font-bold text-center mb-4 text-white">가계부 계산기</h2>
+          <input
+            type="text"
+            placeholder="월급을 입력하세요"
+            className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+            value={salary}
+            onChange={handleSalaryChange}
+          />
+          {/* 입력된 숫자를 한글 금액으로 변환하여 표시 */}
+          {salary && (
+            <p className="text-gray-400 text-sm mb-3">
+              한글 금액: {numberToKorean(Number(salary.replace(/,/g, "")))}
+            </p>
+          )}
+          <button
+            onClick={handleCalculate}
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition duration-300"
+          >
+            계산하기
+          </button>
+          <div className="mt-4 p-4 bg-gray-700 rounded-lg">
+            <p>생활비: <strong>{allocated.생활비.toLocaleString()}원</strong> ({accountNumbers.생활비})</p>
+            <p>적금: <strong>{allocated.적금.toLocaleString()}원</strong> ({accountNumbers.적금})</p>
+            <p>투자: <strong>{allocated.투자.toLocaleString()}원</strong> ({accountNumbers.투자})</p>
+            <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
+          </div>
         </div>
       </div>
-    </div>
+    </ProtectedRoute>
   );
 }
