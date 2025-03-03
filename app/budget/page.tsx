@@ -10,6 +10,7 @@ import BudgetSummary from "../components/BudgetSummary";
 import BudgetDateSelector from "../components/BudgetDateSelector";
 import BudgetSaveButton from "../components/BudgetSaveButton";
 
+
 const numberToKorean = (num: number): string => {
   const units = ["", "만", "억", "조"];
   let result = "";
@@ -128,7 +129,7 @@ export default function BudgetPage() {
       <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
         <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
           <BudgetHeader userId={userId} />
-          <BudgetDateSelector year={year} month={month} onYearChange={(e) => setYear(e.target.value)} onMonthChange={(e) => setMonth(e.target.value)} />
+          <BudgetDateSelector year="2025" month={month} onMonthChange={(e) => setMonth(e.target.value)}/>
           <BudgetInput allowance={allowance} salary={salary} onAllowanceChange={handleAllowanceChange} onSalaryChange={handleSalaryChange} />
           {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
           <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">계산하기</button>
