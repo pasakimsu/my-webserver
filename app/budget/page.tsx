@@ -7,7 +7,8 @@ import ProtectedRoute from "@/components/ProtectedRoute";
 import BudgetHeader from "../components/BudgetHeader";
 import BudgetInput from "../components/BudgetInput";
 import BudgetSummary from "../components/BudgetSummary";
-
+import BudgetDateSelector from "../components/BudgetDateSelector";
+import BudgetSaveButton from "../components/BudgetSaveButton";
 
 const numberToKorean = (num: number): string => {
   const units = ["", "만", "억", "조"];
@@ -29,6 +30,8 @@ const numberToKorean = (num: number): string => {
 export default function BudgetPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
+  const [year, setYear] = useState<string>(new Date().getFullYear().toString());
+  const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
   const [allowance, setAllowance] = useState<string>("");
   const [salary, setSalary] = useState<string>("");
   const [totalSalary, setTotalSalary] = useState<number>(0);
@@ -89,20 +92,48 @@ export default function BudgetPage() {
     });
   };
 
+  const handleSave = async () => {
+    if (!userId) {
+      alert("로그인이 필요합니다.");
+      return;
+    }
+
+    if (totalSalary <= 0) {
+      alert("올바른 수당과 월급을 입력하세요.");
+      return;
+    }
+
+    try {
+      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
+      await setDoc(docRef, {
+        userId,
+        year,
+        month,
+        allowance: Number(allowance.replace(/,/g, "")), // 5일 수당
+        salary: Number(salary.replace(/,/g, "")), // 20일 월급
+        totalSalary,
+        allocations: allocated,
+        timestamp: new Date(),
+      });
+
+      alert("저장되었습니다.");
+    } catch (error) {
+      console.error("저장 실패:", error);
+      alert("저장 중 오류가 발생했습니다.");
+    }
+  };
+
   return (
     <ProtectedRoute>
       <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
         <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
           <BudgetHeader userId={userId} />
-          <BudgetInput
-            allowance={allowance}
-            salary={salary}
-            onAllowanceChange={handleAllowanceChange}
-            onSalaryChange={handleSalaryChange}
-          />
+          <BudgetDateSelector year={year} month={month} onYearChange={(e) => setYear(e.target.value)} onMonthChange={(e) => setMonth(e.target.value)} />
+          <BudgetInput allowance={allowance} salary={salary} onAllowanceChange={handleAllowanceChange} onSalaryChange={handleSalaryChange} />
           {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
           <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">계산하기</button>
           <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
+          <BudgetSaveButton onSave={handleSave} />
         </div>
       </div>
     </ProtectedRoute>
