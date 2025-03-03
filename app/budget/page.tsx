@@ -173,4 +173,40 @@ export default function BudgetPage() {
       </div>
     </ProtectedRoute>
   );
+  useEffect(() => {
+    const fetchBudgets = async () => {
+      setLoading(true);
+      try {
+        console.log(`Fetching data for 2025-${month}...`); // 디버깅용 로그 추가
+  
+        const q = query(collection(db, "budgets"), where("year", "==", "2025"), where("month", "==", month));
+        const querySnapshot = await getDocs(q);
+  
+        if (querySnapshot.empty) {
+          console.log("No data found for this month.");
+        }
+  
+        const budgets = querySnapshot.docs.map((doc) => ({
+          userId: doc.data().userId,
+          생활비: doc.data().allocations.생활비 || 0,
+          적금: doc.data().allocations.적금 || 0,
+          투자: doc.data().allocations.투자 || 0,
+          가족: doc.data().allocations.가족 || 0,
+        }));
+  
+        setUserBudgets(budgets);
+      } catch (error) {
+        console.error("데이터 불러오기 실패:", error);
+      }
+      setLoading(false);
+    };
+  
+    fetchBudgets();
+  }, [month]);
+  {loading ? (
+    <p className="text-white mt-6">데이터 불러오는 중...</p>
+  ) : (
+    <BudgetComparisonTable userBudgets={userBudgets} />
+  )}
+  
 }
