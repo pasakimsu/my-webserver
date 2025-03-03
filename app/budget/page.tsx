@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function BudgetPage() {
+  const router = useRouter();
   const [salary, setSalary] = useState<number | "">("");
   const [allocated, setAllocated] = useState({
     생활비: 0,
@@ -10,6 +12,14 @@ export default function BudgetPage() {
     투자: 0,
     가족: 0,
   });
+
+  // 로그인 여부 확인
+  useEffect(() => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn");
+    if (!isLoggedIn) {
+      router.push("/login"); // 로그인 안 했으면 /login으로 강제 이동
+    }
+  }, []);
 
   const handleCalculate = () => {
     if (!salary || salary <= 0) return;
