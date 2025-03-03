@@ -28,7 +28,9 @@ export default function BudgetPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
-  const [salary, setSalary] = useState<string>("");
+  const [allowance, setAllowance] = useState<string>(""); // 5일 수당
+  const [salary, setSalary] = useState<string>(""); // 20일 월급
+  const [totalSalary, setTotalSalary] = useState<number>(0); // 합산 금액
   const [allocated, setAllocated] = useState<{ [key: string]: number }>({
     생활비: 0,
     적금: 0,
@@ -45,7 +47,7 @@ export default function BudgetPage() {
 
   // 로그인 여부 확인 및 사용자 정보 가져오기
   useEffect(() => {
-    const storedUserId = localStorage.getItem("userId"); // 로그인한 사용자 ID 가져오기
+    const storedUserId = localStorage.getItem("userId");
     if (!storedUserId) {
       router.push("/login");
     } else {
@@ -53,58 +55,42 @@ export default function BudgetPage() {
     }
   }, [router]);
 
-  // 입력값 변경 시 천 단위 콤마(,) 적용 및 한글 변환
-  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, ""); // 기존 콤마 제거
+  // 입력값 변경 시 천 단위 콤마(,) 적용 및 합산 금액 업데이트
+  const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, "");
     const numValue = Number(rawValue);
-
     if (!isNaN(numValue)) {
-      setSalary(numValue.toLocaleString()); // 천 단위 콤마 추가
+      setAllowance(numValue.toLocaleString());
+      updateTotalSalary(numValue, salary);
     }
+  };
+
+  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const rawValue = e.target.value.replace(/,/g, "");
+    const numValue = Number(rawValue);
+    if (!isNaN(numValue)) {
+      setSalary(numValue.toLocaleString());
+      updateTotalSalary(allowance, numValue);
+    }
+  };
+
+  // 5일 수당 + 20일 월급 합산
+  const updateTotalSalary = (allowanceValue: string | number, salaryValue: string | number) => {
+    const rawAllowance = Number(typeof allowanceValue === "string" ? allowanceValue.replace(/,/g, "") : allowanceValue);
+    const rawSalary = Number(typeof salaryValue === "string" ? salaryValue.replace(/,/g, "") : salaryValue);
+    setTotalSalary(rawAllowance + rawSalary);
   };
 
   // 월급 분배 계산
   const handleCalculate = () => {
-    const rawSalary = Number(salary.replace(/,/g, ""));
-    if (!rawSalary || rawSalary <= 0) return;
+    if (totalSalary <= 0) return;
 
     setAllocated({
-      생활비: Math.floor(rawSalary * 0.25),
-      적금: Math.floor(rawSalary * 0.25),
-      투자: Math.floor(rawSalary * 0.15),
-      가족: Math.floor(rawSalary * 0.1),
+      생활비: Math.floor(totalSalary * 0.25),
+      적금: Math.floor(totalSalary * 0.25),
+      투자: Math.floor(totalSalary * 0.15),
+      가족: Math.floor(totalSalary * 0.1),
     });
-  };
-
-  // Firebase에 데이터 저장
-  const handleSave = async () => {
-    if (!userId) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    const rawSalary = Number(salary.replace(/,/g, ""));
-    if (!rawSalary || rawSalary <= 0) {
-      alert("올바른 월급을 입력하세요.");
-      return;
-    }
-
-    try {
-      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
-      await setDoc(docRef, {
-        userId,
-        year,
-        month,
-        salary: rawSalary,
-        allocations: allocated,
-        timestamp: new Date(),
-      });
-
-      alert("저장되었습니다.");
-    } catch (error) {
-      console.error("저장 실패:", error);
-      alert("저장 중 오류가 발생했습니다.");
-    }
   };
 
   return (
@@ -121,42 +107,29 @@ export default function BudgetPage() {
 
           <h2 className="text-2xl font-bold text-center mb-4 text-white">가계부 계산기</h2>
 
-          {/* 년월 선택 */}
-          <div className="flex gap-2 mb-3">
-            <select
-              className="p-2 bg-gray-700 text-white border border-gray-600 rounded"
-              value={year}
-              onChange={(e) => setYear(e.target.value)}
-            >
-              {[...Array(5)].map((_, i) => {
-                const y = new Date().getFullYear() - i;
-                return <option key={y} value={y}>{y}년</option>;
-              })}
-            </select>
-
-            <select
-              className="p-2 bg-gray-700 text-white border border-gray-600 rounded"
-              value={month}
-              onChange={(e) => setMonth(e.target.value)}
-            >
-              {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => (
-                <option key={m} value={m.toString().padStart(2, "0")}>
-                  {m}월
-                </option>
-              ))}
-            </select>
-          </div>
-
+          {/* 5일 수당 & 20일 월급 입력 */}
+          <label className="text-white text-sm">5일 수당</label>
           <input
             type="text"
-            placeholder="월급을 입력하세요"
+            placeholder="5일 수당을 입력하세요"
+            className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+            value={allowance}
+            onChange={handleAllowanceChange}
+          />
+
+          <label className="text-white text-sm">20일 월급</label>
+          <input
+            type="text"
+            placeholder="20일 월급을 입력하세요"
             className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
             value={salary}
             onChange={handleSalaryChange}
           />
-          {salary && (
+
+          {/* 합산된 금액 한글 변환 */}
+          {totalSalary > 0 && (
             <p className="text-gray-400 text-sm mb-3">
-              한글 금액: {numberToKorean(Number(salary.replace(/,/g, "")))}
+              한글 금액: {numberToKorean(totalSalary)}
             </p>
           )}
 
@@ -176,13 +149,6 @@ export default function BudgetPage() {
               <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
             </div>
           )}
-
-          <button
-            onClick={handleSave}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded transition duration-300 mt-3"
-          >
-            저장하기
-          </button>
         </div>
       </div>
     </ProtectedRoute>
