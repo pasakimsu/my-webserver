@@ -29,7 +29,7 @@ export default function BudgetPage() {
   const [year, setYear] = useState<string>(new Date().getFullYear().toString());
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
   const [salary, setSalary] = useState<string>("");
-  const [allocated, setAllocated] = useState({
+  const [allocated, setAllocated] = useState<{ [key: string]: number }>({
     생활비: 0,
     적금: 0,
     투자: 0,
@@ -63,6 +63,7 @@ export default function BudgetPage() {
     }
   };
 
+  // 월급 분배 계산
   const handleCalculate = () => {
     const rawSalary = Number(salary.replace(/,/g, ""));
     if (!rawSalary || rawSalary <= 0) return;
@@ -157,9 +158,20 @@ export default function BudgetPage() {
           >
             계산하기
           </button>
+
+          {/* 계산 결과 출력 */}
+          {allocated.생활비 > 0 && (
+            <div className="mt-4 p-4 bg-gray-700 rounded-lg">
+              <p>생활비: <strong>{allocated.생활비.toLocaleString()}원</strong> ({accountNumbers.생활비})</p>
+              <p>적금: <strong>{allocated.적금.toLocaleString()}원</strong> ({accountNumbers.적금})</p>
+              <p>투자: <strong>{allocated.투자.toLocaleString()}원</strong> ({accountNumbers.투자})</p>
+              <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
+            </div>
+          )}
+
           <button
             onClick={handleSave}
-            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded transition duration-300"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded transition duration-300 mt-3"
           >
             저장하기
           </button>
