@@ -13,6 +13,14 @@ export default function BudgetPage() {
     가족: 0,
   });
 
+  // 계좌번호 정보
+  const accountNumbers = {
+    생활비: "123-4567-8901",
+    적금: "234-5678-9012",
+    투자: "345-6789-0123",
+    가족: "456-7890-1234",
+  };
+
   // 로그인 여부 확인
   useEffect(() => {
     const isLoggedIn = localStorage.getItem("isLoggedIn");
@@ -50,10 +58,10 @@ export default function BudgetPage() {
           계산하기
         </button>
         <div className="mt-4 p-4 bg-gray-700 rounded-lg">
-          <p>생활비 계좌: <strong>{allocated.생활비.toLocaleString()}원</strong></p>
-          <p>적금 계좌: <strong>{allocated.적금.toLocaleString()}원</strong></p>
-          <p>투자 계좌: <strong>{allocated.투자.toLocaleString()}원</strong></p>
-          <p>가족 계좌: <strong>{allocated.가족.toLocaleString()}원</strong></p>
+          <p>생활비: <strong>{allocated.생활비.toLocaleString()}원</strong> ({accountNumbers.생활비})</p>
+          <p>적금: <strong>{allocated.적금.toLocaleString()}원</strong> ({accountNumbers.적금})</p>
+          <p>투자: <strong>{allocated.투자.toLocaleString()}원</strong> ({accountNumbers.투자})</p>
+          <p>가족: <strong>{allocated.가족.toLocaleString()}원</strong> ({accountNumbers.가족})</p>
         </div>
       </div>
     </div>
