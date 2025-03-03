@@ -19,7 +19,6 @@ export default function LoginPage() {
     }
 
     try {
-      // Firestore에서 유저 데이터 확인
       const usersRef = collection(db, "users");
       const q = query(usersRef, where("userId", "==", userId), where("password", "==", password));
       const querySnapshot = await getDocs(q);
@@ -36,27 +35,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <div className="w-full max-w-md p-6 bg-white rounded-lg shadow-md">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-gray-900 to-gray-700 text-white">
+      <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
         <h2 className="text-2xl font-bold text-center mb-4">로그인</h2>
         <input
           type="text"
           placeholder="아이디"
-          className="w-full p-2 mb-2 border rounded"
+          className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
         />
         <input
           type="password"
           placeholder="비밀번호"
-          className="w-full p-2 mb-2 border rounded"
+          className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        {error && <p className="text-red-500 text-sm">{error}</p>}
+        {error && <p className="text-red-400 text-sm">{error}</p>}
         <button
           onClick={handleLogin}
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-700"
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded transition duration-300"
         >
           로그인
         </button>
