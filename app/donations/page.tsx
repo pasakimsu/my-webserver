@@ -48,23 +48,24 @@ export default function DonationsPage() {
             console.warn("Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
           }
 
-          // 🔹 시트 목록 확인
-          console.log("시트 목록:", workbook.worksheets.map((ws) => ws.name));
+          // 🔹 시트 목록 확인 및 로그 출력
+          const sheetNames = workbook.worksheets.map((ws) => ws.name);
+          console.log("시트 목록:", sheetNames);
 
-          // 🔹 첫 번째 시트 가져오기 (워크시트가 없으면 오류 방지)
-          if (workbook.worksheets.length === 0) {
+          // 🔹 시트가 없을 경우 오류 메시지 표시
+          if (sheetNames.length === 0) {
             alert("엑셀 파일에 시트가 없습니다. 올바른 파일인지 확인하세요.");
             return;
           }
 
-          const worksheet = workbook.worksheets[0]; // 첫 번째 시트 가져오기
-          const jsonData: any[] = [];
-
-          // 🔹 `eachRow` 실행 전 worksheet가 정의되었는지 확인
+          // 🔹 첫 번째 시트 가져오기
+          const worksheet = workbook.getWorksheet(sheetNames[0]); // 첫 번째 시트 가져오기
           if (!worksheet) {
             alert("엑셀 파일에서 데이터를 찾을 수 없습니다.");
             return;
           }
+
+          const jsonData: any[] = [];
 
           worksheet.eachRow((row, rowNumber) => {
             if (rowNumber === 1) return; // 첫 번째 행(헤더) 스킵
@@ -76,6 +77,12 @@ export default function DonationsPage() {
             };
             jsonData.push(rowData);
           });
+
+          // 🔹 데이터가 비어 있는 경우 예외 처리
+          if (jsonData.length === 0) {
+            alert("엑셀 파일이 비어 있습니다. 올바른 파일인지 확인하세요.");
+            return;
+          }
 
           // 🔹 Firebase에 데이터 저장
           for (const row of jsonData) {
