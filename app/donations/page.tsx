@@ -54,7 +54,7 @@ export default function DonationsPage() {
 
           // 🔹 시트가 없을 경우 오류 메시지 표시
           if (sheetNames.length === 0) {
-            alert("엑셀 파일에 시트가 없습니다. Excel에서 직접 열어보고 다시 저장 후 업로드하세요.");
+            alert("📢 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
             return;
           }
 
@@ -80,7 +80,7 @@ export default function DonationsPage() {
 
           // 🔹 데이터가 비어 있는 경우 예외 처리
           if (jsonData.length === 0) {
-            alert("엑셀 파일이 비어 있습니다. 올바른 파일인지 확인하세요.");
+            alert("📢 엑셀 파일이 비어 있습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
             return;
           }
 
@@ -89,7 +89,7 @@ export default function DonationsPage() {
             await addDoc(collection(db, "donations"), row);
           }
 
-          alert("업로드 완료!");
+          alert("✅ 업로드 완료!");
           setSelectedFile(null); // 파일 선택 초기화
           setFileName(""); // 파일명 초기화
         } catch (error) {
