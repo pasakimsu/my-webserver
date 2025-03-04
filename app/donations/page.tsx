@@ -7,12 +7,14 @@ import * as ExcelJS from "exceljs";
 export default function DonationsPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
 
   // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setSelectedFile(file);
+      setFileName(file.name); // 🔹 선택한 파일명 화면에 표시
     }
   };
 
@@ -45,7 +47,7 @@ export default function DonationsPage() {
           jsonData.push(rowData);
         });
 
-        // Firebase에 데이터 저장
+        // 🔹 Firebase에 데이터 저장
         for (const row of jsonData) {
           await addDoc(collection(db, "donations"), {
             date: row.날짜,
@@ -57,6 +59,7 @@ export default function DonationsPage() {
 
         alert("업로드 완료!");
         setSelectedFile(null); // 파일 선택 초기화
+        setFileName(""); // 파일명 초기화
       };
     } catch (error) {
       console.error("엑셀 파일 처리 오류:", error);
@@ -70,9 +73,15 @@ export default function DonationsPage() {
     <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 p-6 text-white">
       <h2 className="text-2xl font-bold mb-4">부조금 관리</h2>
 
-      {/* 🔹 파일 선택 */}
-      <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="mb-4 p-2 bg-gray-700 rounded" />
-      
+      {/* 🔹 파일 선택 버튼 */}
+      <label className="bg-gray-700 text-white p-2 rounded cursor-pointer hover:bg-gray-600 mb-2">
+        파일 선택
+        <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" />
+      </label>
+
+      {/* 🔹 선택된 파일명 표시 */}
+      {fileName && <p className="text-gray-400 mb-4">{fileName}</p>}
+
       {/* 🔹 업로드 버튼 */}
       <button
         onClick={handleFileUpload}
