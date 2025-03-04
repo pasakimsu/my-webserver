@@ -41,20 +41,23 @@ export default function DonationsPage() {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const workbook = new ExcelJS.Workbook();
 
-          // 🔹 `company` 오류 방지: workbook을 로드하기 전에 강제 예외 처리
+          // 🔹 Excel 파일 로드 (메타데이터 오류 방지)
           try {
             await workbook.xlsx.load(arrayBuffer);
           } catch (metaError) {
             console.warn("Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
           }
 
-          // 🔹 첫 번째 시트 가져오기 (워크시트가 없는 경우 오류 방지)
+          // 🔹 시트 목록 확인
+          console.log("시트 목록:", workbook.worksheets.map((ws) => ws.name));
+
+          // 🔹 첫 번째 시트 가져오기 (워크시트가 없으면 오류 방지)
           if (workbook.worksheets.length === 0) {
             alert("엑셀 파일에 시트가 없습니다. 올바른 파일인지 확인하세요.");
             return;
           }
 
-          const worksheet = workbook.worksheets[0];
+          const worksheet = workbook.worksheets[0]; // 첫 번째 시트 가져오기
           const jsonData: any[] = [];
 
           // 🔹 `eachRow` 실행 전 worksheet가 정의되었는지 확인
