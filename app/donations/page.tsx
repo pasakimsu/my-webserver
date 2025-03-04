@@ -1,3 +1,5 @@
+"use client"; // ✅ 클라이언트 컴포넌트로 설정
+
 import { useState } from "react";
 import { db, collection, addDoc } from "@/lib/firebase";
 import * as ExcelJS from "exceljs";
