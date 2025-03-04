@@ -9,8 +9,36 @@ export default function DonationsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
+  // 🔹 엑셀 파일 검증 함수
+  const isExcelFileValid = async (file: File): Promise<boolean> => {
+    const reader = new FileReader();
+    return new Promise((resolve) => {
+      reader.readAsArrayBuffer(file);
+      reader.onload = async (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(arrayBuffer);
+          const sheetNames = workbook.worksheets.map((ws) => ws.name);
+
+          console.log("📢 시트 목록:", sheetNames);
+
+          if (sheetNames.length === 0) {
+            alert("🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
+            resolve(false);
+          } else {
+            resolve(true);
+          }
+        } catch (error) {
+          console.error("❌ 엑셀 파일 검증 오류:", error);
+          resolve(false);
+        }
+      };
+    });
+  };
+
   // 🔹 파일 선택 핸들러
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
@@ -19,6 +47,10 @@ export default function DonationsPage() {
         alert("파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드 가능합니다.");
         return;
       }
+
+      // 🔹 파일 검증 후 문제 있으면 업로드 차단
+      const isValid = await isExcelFileValid(file);
+      if (!isValid) return;
 
       setSelectedFile(file);
       setFileName(file.name); // 파일명 저장
@@ -40,37 +72,25 @@ export default function DonationsPage() {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const workbook = new ExcelJS.Workbook();
+          await workbook.xlsx.load(arrayBuffer);
 
-          // 🔹 Excel 파일 로드 (메타데이터 오류 방지)
-          try {
-            await workbook.xlsx.load(arrayBuffer);
-          } catch (metaError) {
-            console.warn("📢 Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
-          }
-
-          // 🔹 시트 목록 확인 및 로그 출력
           const sheetNames = workbook.worksheets.map((ws) => ws.name);
           console.log("📢 시트 목록:", sheetNames);
 
-          // 🔹 시트가 없을 경우 오류 메시지 표시
           if (sheetNames.length === 0) {
-            alert(
-              "🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드"
-            );
+            alert("🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
             return;
           }
 
-          // 🔹 첫 번째 시트 가져오기
           const worksheet = workbook.getWorksheet(sheetNames[0]); // 첫 번째 시트 가져오기
           if (!worksheet) {
-            alert("🚨 엑셀 파일에서 데이터를 찾을 수 없습니다. 올바른 파일인지 확인하세요.");
+            alert("🚨 엑셀 파일에서 데이터를 찾을 수 없습니다.");
             return;
           }
 
           const jsonData: any[] = [];
-
           worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return; // 첫 번째 행(헤더) 스킵
+            if (rowNumber === 1) return;
             const rowData = {
               date: row.getCell(1).value?.toString() || "",
               name: row.getCell(2).value?.toString() || "",
@@ -80,20 +100,18 @@ export default function DonationsPage() {
             jsonData.push(rowData);
           });
 
-          // 🔹 데이터가 비어 있는 경우 예외 처리
           if (jsonData.length === 0) {
             alert("📢 엑셀 파일이 비어 있습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
             return;
           }
 
-          // 🔹 Firebase에 데이터 저장
           for (const row of jsonData) {
             await addDoc(collection(db, "donations"), row);
           }
 
           alert("✅ 업로드 완료!");
-          setSelectedFile(null); // 파일 선택 초기화
-          setFileName(""); // 파일명 초기화
+          setSelectedFile(null);
+          setFileName("");
         } catch (error) {
           console.error("❌ 엑셀 파일 처리 오류:", error);
           alert("❌ 엑셀 파일을 처리하는 중 오류가 발생했습니다.");
