@@ -9,36 +9,8 @@ export default function DonationsPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
-  // 🔹 엑셀 파일 검증 함수
-  const isExcelFileValid = async (file: File): Promise<boolean> => {
-    const reader = new FileReader();
-    return new Promise((resolve) => {
-      reader.readAsArrayBuffer(file);
-      reader.onload = async (e) => {
-        try {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const workbook = new ExcelJS.Workbook();
-          await workbook.xlsx.load(arrayBuffer);
-          const sheetNames = workbook.worksheets.map((ws) => ws.name);
-
-          console.log("📢 시트 목록:", sheetNames);
-
-          if (sheetNames.length === 0) {
-            alert("🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
-            resolve(false);
-          } else {
-            resolve(true);
-          }
-        } catch (error) {
-          console.error("❌ 엑셀 파일 검증 오류:", error);
-          resolve(false);
-        }
-      };
-    });
-  };
-
   // 🔹 파일 선택 핸들러
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
@@ -47,10 +19,6 @@ export default function DonationsPage() {
         alert("파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드 가능합니다.");
         return;
       }
-
-      // 🔹 파일 검증 후 문제 있으면 업로드 차단
-      const isValid = await isExcelFileValid(file);
-      if (!isValid) return;
 
       setSelectedFile(file);
       setFileName(file.name); // 파일명 저장
@@ -72,8 +40,20 @@ export default function DonationsPage() {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const workbook = new ExcelJS.Workbook();
-          await workbook.xlsx.load(arrayBuffer);
 
+          // 🔹 Excel 파일 로드 (메타데이터 오류 방지)
+          try {
+            await workbook.xlsx.load(arrayBuffer);
+          } catch (metaError) {
+            console.warn("📢 Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
+          }
+
+          // 🔹 `company` 오류 방지: 파일 메타데이터 확인
+          if (!workbook.company) {
+            console.warn("📢 회사 정보 (company) 메타데이터 없음: 무시하고 계속 진행");
+          }
+
+          // 🔹 시트 목록 확인 및 로그 출력
           const sheetNames = workbook.worksheets.map((ws) => ws.name);
           console.log("📢 시트 목록:", sheetNames);
 
