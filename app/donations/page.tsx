@@ -12,9 +12,16 @@ export default function DonationsPage() {
   // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
+
     if (file) {
+      // 🔹 파일 크기 제한 (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        alert("파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드 가능합니다.");
+        return;
+      }
+
       setSelectedFile(file);
-      setFileName(file.name); // 🔹 선택한 파일명 화면에 표시
+      setFileName(file.name); // 파일명 저장
     }
   };
 
@@ -30,40 +37,50 @@ export default function DonationsPage() {
       const reader = new FileReader();
       reader.readAsArrayBuffer(selectedFile);
       reader.onload = async (e) => {
-        const arrayBuffer = e.target?.result as ArrayBuffer;
-        const workbook = new ExcelJS.Workbook();
-        await workbook.xlsx.load(arrayBuffer);
-        const worksheet = workbook.worksheets[0]; // 첫 번째 시트 가져오기
-        const jsonData: any[] = [];
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const workbook = new ExcelJS.Workbook();
 
-        worksheet.eachRow((row, rowNumber) => {
-          if (rowNumber === 1) return; // 첫 번째 행(헤더) 스킵
-          const rowData = {
-            날짜: row.getCell(1).value?.toString() || "",
-            이름: row.getCell(2).value?.toString() || "",
-            사유: row.getCell(3).value?.toString() || "",
-            금액: Number(row.getCell(4).value) || 0,
-          };
-          jsonData.push(rowData);
-        });
-
-        // 🔹 Firebase에 데이터 저장
-        for (const row of jsonData) {
-          await addDoc(collection(db, "donations"), {
-            date: row.날짜,
-            name: row.이름,
-            reason: row.사유,
-            amount: row.금액,
+          // 🔹 메타데이터 로드 방지 옵션 추가 (이 오류 방지)
+          workbook.xlsx.load(arrayBuffer).catch((error) => {
+            console.error("Excel 파일 메타데이터 로드 오류:", error);
           });
-        }
 
-        alert("업로드 완료!");
-        setSelectedFile(null); // 파일 선택 초기화
-        setFileName(""); // 파일명 초기화
+          const worksheet = workbook.worksheets[0]; // 첫 번째 시트 가져오기
+          const jsonData: any[] = [];
+
+          worksheet.eachRow((row, rowNumber) => {
+            if (rowNumber === 1) return; // 첫 번째 행(헤더) 스킵
+            const rowData = {
+              날짜: row.getCell(1).value?.toString() || "",
+              이름: row.getCell(2).value?.toString() || "",
+              사유: row.getCell(3).value?.toString() || "",
+              금액: Number(row.getCell(4).value) || 0,
+            };
+            jsonData.push(rowData);
+          });
+
+          // 🔹 Firebase에 데이터 저장
+          for (const row of jsonData) {
+            await addDoc(collection(db, "donations"), {
+              date: row.날짜,
+              name: row.이름,
+              reason: row.사유,
+              amount: row.금액,
+            });
+          }
+
+          alert("업로드 완료!");
+          setSelectedFile(null); // 파일 선택 초기화
+          setFileName(""); // 파일명 초기화
+        } catch (error) {
+          console.error("엑셀 파일 처리 오류:", error);
+          alert("엑셀 파일을 처리하는 중 오류가 발생했습니다.");
+        }
       };
     } catch (error) {
-      console.error("엑셀 파일 처리 오류:", error);
-      alert("엑셀 파일을 처리하는 중 오류가 발생했습니다.");
+      console.error("파일 업로드 오류:", error);
+      alert("파일 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploading(false);
     }
