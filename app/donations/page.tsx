@@ -40,7 +40,15 @@ export default function DonationsPage() {
         try {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const workbook = new ExcelJS.Workbook();
-          await workbook.xlsx.load(arrayBuffer);
+
+          // 🔹 Excel 메타데이터 오류 방지 (예외 처리 추가)
+          try {
+            await workbook.xlsx.load(arrayBuffer);
+          } catch (metaError) {
+            console.error("Excel 파일 메타데이터 로드 오류:", metaError);
+            alert("엑셀 파일을 불러오는 중 오류가 발생했습니다. 다른 파일을 시도해주세요.");
+            return;
+          }
 
           // 🔹 첫 번째 시트 가져오기 (워크시트가 없는 경우 오류 방지)
           if (workbook.worksheets.length === 0) {
@@ -50,6 +58,12 @@ export default function DonationsPage() {
 
           const worksheet = workbook.worksheets[0];
           const jsonData: any[] = [];
+
+          // 🔹 `eachRow` 실행 전 worksheet가 정의되었는지 확인
+          if (!worksheet) {
+            alert("엑셀 파일에서 데이터를 찾을 수 없습니다.");
+            return;
+          }
 
           worksheet.eachRow((row, rowNumber) => {
             if (rowNumber === 1) return; // 첫 번째 행(헤더) 스킵
