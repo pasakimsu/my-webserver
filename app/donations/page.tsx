@@ -41,13 +41,11 @@ export default function DonationsPage() {
           const arrayBuffer = e.target?.result as ArrayBuffer;
           const workbook = new ExcelJS.Workbook();
 
-          // 🔹 Excel 메타데이터 오류 방지 (예외 처리 추가)
+          // 🔹 `company` 오류 방지: workbook을 로드하기 전에 강제 예외 처리
           try {
             await workbook.xlsx.load(arrayBuffer);
           } catch (metaError) {
-            console.error("Excel 파일 메타데이터 로드 오류:", metaError);
-            alert("엑셀 파일을 불러오는 중 오류가 발생했습니다. 다른 파일을 시도해주세요.");
-            return;
+            console.warn("Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
           }
 
           // 🔹 첫 번째 시트 가져오기 (워크시트가 없는 경우 오류 방지)
