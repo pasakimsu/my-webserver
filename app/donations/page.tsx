@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { db, collection, addDoc } from "@/lib/firebase";
-import * as ExcelJS from "exceljs";
 
 export default function DonationsPage() {
   const [uploading, setUploading] = useState(false);
@@ -14,6 +13,14 @@ export default function DonationsPage() {
     const file = event.target.files?.[0];
 
     if (file) {
+      // 🔹 한셀 .cell 파일이면 업로드 불가능 경고
+      if (file.name.endsWith(".cell")) {
+        alert(
+          "⚠️ 한셀(.cell) 파일은 직접 업로드할 수 없습니다. \n\n📌 해결 방법:\n✅ 한셀에서 '다른 이름으로 저장' → 'CSV (.csv)'로 변환 후 업로드하세요!"
+        );
+        return;
+      }
+
       // 🔹 파일 크기 제한 (10MB)
       if (file.size > 10 * 1024 * 1024) {
         alert("파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드 가능합니다.");
@@ -21,11 +28,11 @@ export default function DonationsPage() {
       }
 
       setSelectedFile(file);
-      setFileName(file.name); // 파일명 저장
+      setFileName(file.name);
     }
   };
 
-  // 🔹 엑셀 파일 업로드 및 Firebase 저장
+  // 🔹 CSV 파일 업로드 및 Firebase 저장
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert("업로드할 파일을 선택하세요.");
@@ -35,53 +42,24 @@ export default function DonationsPage() {
     setUploading(true);
     try {
       const reader = new FileReader();
-      reader.readAsArrayBuffer(selectedFile);
+      reader.readAsText(selectedFile, "utf-8"); // CSV 파일 읽기
       reader.onload = async (e) => {
         try {
-          const arrayBuffer = e.target?.result as ArrayBuffer;
-          const workbook = new ExcelJS.Workbook();
+          const csvData = e.target?.result as string;
+          const rows = csvData.split("\n").map((row) => row.split(",")); // 쉼표로 데이터 분리
 
-          // 🔹 Excel 파일 로드 (메타데이터 오류 방지)
-          try {
-            await workbook.xlsx.load(arrayBuffer);
-          } catch (metaError) {
-            console.warn("📢 Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
-          }
+          // 🔹 첫 번째 줄(헤더) 제거
+          rows.shift();
 
-          // 🔹 `company` 오류 방지: 파일 메타데이터 확인
-          if (!workbook.company) {
-            console.warn("📢 회사 정보 (company) 메타데이터 없음: 무시하고 계속 진행");
-          }
-
-          // 🔹 시트 목록 확인 및 로그 출력
-          const sheetNames = workbook.worksheets.map((ws) => ws.name);
-          console.log("📢 시트 목록:", sheetNames);
-
-          if (sheetNames.length === 0) {
-            alert("🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
-            return;
-          }
-
-          const worksheet = workbook.getWorksheet(sheetNames[0]); // 첫 번째 시트 가져오기
-          if (!worksheet) {
-            alert("🚨 엑셀 파일에서 데이터를 찾을 수 없습니다.");
-            return;
-          }
-
-          const jsonData: any[] = [];
-          worksheet.eachRow((row, rowNumber) => {
-            if (rowNumber === 1) return;
-            const rowData = {
-              date: row.getCell(1).value?.toString() || "",
-              name: row.getCell(2).value?.toString() || "",
-              reason: row.getCell(3).value?.toString() || "",
-              amount: Number(row.getCell(4).value) || 0,
-            };
-            jsonData.push(rowData);
-          });
+          const jsonData: any[] = rows.map((row) => ({
+            date: row[0]?.trim() || "",
+            name: row[1]?.trim() || "",
+            reason: row[2]?.trim() || "",
+            amount: Number(row[3]?.trim()) || 0,
+          }));
 
           if (jsonData.length === 0) {
-            alert("📢 엑셀 파일이 비어 있습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
+            alert("📢 CSV 파일이 비어 있습니다! ❌\n\n📌 해결 방법:\n✅ 한셀에서 직접 열어 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 CSV 형식으로 다시 저장 후 업로드");
             return;
           }
 
@@ -93,8 +71,8 @@ export default function DonationsPage() {
           setSelectedFile(null);
           setFileName("");
         } catch (error) {
-          console.error("❌ 엑셀 파일 처리 오류:", error);
-          alert("❌ 엑셀 파일을 처리하는 중 오류가 발생했습니다.");
+          console.error("❌ CSV 파일 처리 오류:", error);
+          alert("❌ CSV 파일을 처리하는 중 오류가 발생했습니다.");
         }
       };
     } catch (error) {
@@ -112,7 +90,7 @@ export default function DonationsPage() {
       {/* 🔹 파일 선택 버튼 */}
       <label className="bg-gray-700 text-white p-2 rounded cursor-pointer hover:bg-gray-600 mb-2">
         파일 선택
-        <input type="file" accept=".xlsx, .xls" onChange={handleFileChange} className="hidden" />
+        <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
       </label>
 
       {/* 🔹 선택된 파일명 표시 */}
