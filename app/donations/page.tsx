@@ -45,23 +45,25 @@ export default function DonationsPage() {
           try {
             await workbook.xlsx.load(arrayBuffer);
           } catch (metaError) {
-            console.warn("Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
+            console.warn("📢 Excel 파일 메타데이터 오류 발생: 무시하고 계속 진행");
           }
 
           // 🔹 시트 목록 확인 및 로그 출력
           const sheetNames = workbook.worksheets.map((ws) => ws.name);
-          console.log("시트 목록:", sheetNames);
+          console.log("📢 시트 목록:", sheetNames);
 
           // 🔹 시트가 없을 경우 오류 메시지 표시
           if (sheetNames.length === 0) {
-            alert("📢 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드");
+            alert(
+              "🚨 엑셀 파일에 시트가 없습니다! ❌\n\n📌 해결 방법:\n✅ Excel에서 직접 열어서 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 .xlsx 형식으로 다시 저장 후 업로드"
+            );
             return;
           }
 
           // 🔹 첫 번째 시트 가져오기
           const worksheet = workbook.getWorksheet(sheetNames[0]); // 첫 번째 시트 가져오기
           if (!worksheet) {
-            alert("엑셀 파일에서 데이터를 찾을 수 없습니다.");
+            alert("🚨 엑셀 파일에서 데이터를 찾을 수 없습니다. 올바른 파일인지 확인하세요.");
             return;
           }
 
@@ -93,13 +95,13 @@ export default function DonationsPage() {
           setSelectedFile(null); // 파일 선택 초기화
           setFileName(""); // 파일명 초기화
         } catch (error) {
-          console.error("엑셀 파일 처리 오류:", error);
-          alert("엑셀 파일을 처리하는 중 오류가 발생했습니다.");
+          console.error("❌ 엑셀 파일 처리 오류:", error);
+          alert("❌ 엑셀 파일을 처리하는 중 오류가 발생했습니다.");
         }
       };
     } catch (error) {
-      console.error("파일 업로드 오류:", error);
-      alert("파일 업로드 중 오류가 발생했습니다.");
+      console.error("❌ 파일 업로드 오류:", error);
+      alert("❌ 파일 업로드 중 오류가 발생했습니다.");
     } finally {
       setUploading(false);
     }
