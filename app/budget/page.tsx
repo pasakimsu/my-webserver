@@ -177,7 +177,7 @@ export default function DonationsPage() {
         {deleting ? "삭제 중..." : "🗑️ 전체 삭제"}
       </button>
 
-      {/* 🔍 검색 기능 추가 */}
+      {/* 🔍 검색 기능 */}
       <h2 className="text-2xl font-bold mb-4">부조금 검색</h2>
       <input
         type="text"
