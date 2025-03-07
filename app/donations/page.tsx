@@ -57,30 +57,27 @@ export default function DonationsPage() {
     setUploading(true);
     try {
       const reader = new FileReader();
-      reader.readAsText(selectedFile, "utf-8"); // ✅ UTF-8 인코딩 강제 적용
+      reader.readAsText(selectedFile, "utf-8");
       reader.onload = async (e) => {
         try {
           let csvData = e.target?.result as string;
 
-          // ✅ UTF-8 BOM 처리 (엑셀에서 저장한 CSV 인코딩 보정)
           if (csvData.charCodeAt(0) === 0xfeff) {
             csvData = csvData.slice(1);
           }
 
-          const rows = csvData.split("\n").map((row) => row.split(",")); // 쉼표로 데이터 분리
-
-          // 🔹 첫 번째 줄(헤더) 제거
-          rows.shift();
+          const rows = csvData.split("\n").map((row) => row.split(","));
+          rows.shift(); // 첫 번째 줄(헤더) 제거
 
           const jsonData: any[] = rows.map((row) => {
-            const rawAmount = row[3]?.trim() || "0"; // ✅ 빈 값이면 "0"으로 설정
-            const cleanedAmount = rawAmount.replace(/,/g, "").trim(); // ✅ 쉼표 제거 & 공백 제거
+            const rawAmount = row[3]?.trim() || "0";
+            const cleanedAmount = rawAmount.replace(/,/g, "").trim();
 
             return {
               date: row[0]?.trim() || "날짜 없음",
               name: row[1]?.trim() || "이름 없음",
               reason: row[2]?.trim() || "사유 없음",
-              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount), // ✅ 숫자가 아니면 0으로 변환
+              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount),
             };
           });
 
@@ -91,11 +88,9 @@ export default function DonationsPage() {
 
           console.log(`📢 총 ${jsonData.length}개의 데이터를 업로드합니다.`);
 
-          // ✅ Firestore 배치 저장 및 딜레이 적용 (속도 제한 방지)
           for (let i = 0; i < jsonData.length; i++) {
             await addDoc(collection(db, "donations"), jsonData[i]);
 
-            // 🔹 50ms 대기 → Firebase 쓰기 제한 방지
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
 
@@ -120,30 +115,34 @@ export default function DonationsPage() {
       <h2 className="text-2xl font-bold mb-4">부조금 관리</h2>
 
       {/* 🔹 파일 선택 버튼 */}
-      <label className="bg-gray-700 text-white p-2 rounded cursor-pointer hover:bg-gray-600 mb-2">
-        파일 선택
+      <label className="bg-gray-700 text-white p-3 rounded-lg cursor-pointer hover:bg-gray-600 mb-3">
+        📂 파일 선택
         <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
       </label>
 
       {/* 🔹 선택된 파일명 표시 */}
-      {fileName && <p className="text-gray-400 mb-4">{fileName}</p>}
+      {fileName && <p className="text-gray-400 mb-4">📄 {fileName}</p>}
 
       {/* 🔹 업로드 버튼 */}
       <button
         onClick={handleFileUpload}
-        className={`p-2 rounded mb-3 ${selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"}`}
+        className={`p-3 rounded-lg w-40 mb-4 ${
+          selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"
+        }`}
         disabled={!selectedFile}
       >
-        {uploading ? "업로드 중..." : "업로드"}
+        {uploading ? "업로드 중..." : "⬆️ 업로드"}
       </button>
 
       {/* 🔹 일괄 삭제 버튼 */}
       <button
         onClick={handleDeleteAll}
-        className={`p-2 rounded ${deleting ? "bg-red-700 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"}`}
+        className={`p-3 rounded-lg w-40 ${
+          deleting ? "bg-red-700 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
+        }`}
         disabled={deleting}
       >
-        {deleting ? "삭제 중..." : "⚠️ 전체 삭제"}
+        {deleting ? "삭제 중..." : "🗑️ 전체 삭제"}
       </button>
     </div>
   );
