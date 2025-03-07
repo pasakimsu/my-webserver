@@ -8,6 +8,7 @@ export default function FileUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
+  // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -16,6 +17,7 @@ export default function FileUpload() {
     }
   };
 
+  // 🔹 CSV 파일 업로드 및 Firestore 저장
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert("업로드할 파일을 선택하세요.");
@@ -42,9 +44,11 @@ export default function FileUpload() {
             return {
               date: row[0]?.trim() || "날짜 없음",
               name: name,
-              nameKeywords: generateNameKeywords(name), // 🔹 검색 키워드 배열 추가
+              nameKeywords: generateNameKeywords(name), // 🔹 부분 검색을 위한 키워드 배열 추가
               reason: row[2]?.trim() || "사유 없음",
-              amount: isNaN(Number(row[3]?.replace(/,/g, "").trim())) ? 0 : Number(row[3]?.replace(/,/g, "").trim()),
+              amount: isNaN(Number(row[3]?.replace(/,/g, "").trim()))
+                ? 0
+                : Number(row[3]?.replace(/,/g, "").trim()),
             };
           });
 

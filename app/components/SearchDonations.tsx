@@ -1,15 +1,14 @@
+"use client";
+
 import { useState } from "react";
-import { 
-  db, collection, getDocs, query, where, 
-  orderBy, startAt, endAt 
-} from "@/lib/firebase"; // ✅ `orderBy`, `startAt`, `endAt` 가져오기
+import { db, collection, getDocs, query, where } from "@/lib/firebase";
 
 export default function SearchDonations() {
-  const [searchName, setSearchName] = useState(""); 
-  const [searchResults, setSearchResults] = useState<any[]>([]); 
-  const [loading, setLoading] = useState(false); 
+  const [searchName, setSearchName] = useState(""); // 🔍 검색할 이름
+  const [searchResults, setSearchResults] = useState<any[]>([]); // 🔍 검색 결과
+  const [loading, setLoading] = useState(false); // 검색 로딩 상태
 
-  // 🔹 Firestore에서 `startAt()` & `endAt()` 이용한 부분 검색
+  // 🔹 Firestore에서 해당 이름이 포함된 부조금 내역 검색
   const handleSearch = async () => {
     if (!searchName.trim()) {
       alert("검색할 이름을 입력하세요.");
@@ -20,9 +19,7 @@ export default function SearchDonations() {
     try {
       const q = query(
         collection(db, "donations"),
-        orderBy("name"), // ✅ `name` 필드 정렬
-        startAt(searchName.trim()), 
-        endAt(searchName.trim() + "\uf8ff") 
+        where("nameKeywords", "array-contains", searchName.trim()) // 🔍 부분 검색 적용
       );
 
       const querySnapshot = await getDocs(q);
@@ -46,18 +43,20 @@ export default function SearchDonations() {
   };
 
   return (
-    <div className="w-full max-w-md bg-gray-800 p-4 rounded-lg shadow-lg mt-6">
-      <h2 className="text-lg font-semibold text-white mb-2">🔍 부조금 검색</h2>
+    <div className="flex flex-col items-center mt-6">
+      <h2 className="text-2xl font-bold mb-4">부조금 검색</h2>
+
       <input
         type="text"
         placeholder="이름을 입력하세요"
-        className="w-full p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+        className="p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
         value={searchName}
         onChange={(e) => setSearchName(e.target.value)}
       />
+
       <button
         onClick={handleSearch}
-        className={`w-full p-3 rounded-lg ${
+        className={`p-3 rounded-lg w-40 mb-4 ${
           searchName ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"
         }`}
         disabled={!searchName}
@@ -65,17 +64,18 @@ export default function SearchDonations() {
         {loading ? "검색 중..." : "🔍 검색"}
       </button>
 
-      {searchResults.length > 0 ? (
-        <ul className="mt-3">
-          {searchResults.map((result) => (
-            <li key={result.id} className="border-b border-gray-600 py-2 text-white">
-              📅 <strong>{result.date}</strong> | 👤 <strong>{result.name}</strong> | 💰{" "}
-              <strong>{result.amount.toLocaleString()}원</strong>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p className="text-gray-400 text-center mt-3">검색된 내역이 없습니다.</p>
+      {/* 🔹 검색 결과 출력 */}
+      {searchResults.length > 0 && (
+        <div className="w-full max-w-md bg-gray-800 p-4 rounded-lg shadow-lg">
+          <h3 className="text-lg font-semibold mb-2">검색 결과</h3>
+          <ul>
+            {searchResults.map((result) => (
+              <li key={result.id} className="border-b border-gray-600 py-2">
+                📅 <strong>{result.date}</strong> | 👤 <strong>{result.name}</strong> | 💰 <strong>{result.amount.toLocaleString()}원</strong>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   );
