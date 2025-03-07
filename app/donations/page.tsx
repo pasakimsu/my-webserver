@@ -3,6 +3,7 @@
 import DonationsHeader from "../components/DonationsHeader";
 import FileUpload from "../components/FileUpload";
 import DeleteAllButton from "../components/DeleteAllButton";
+import SearchDonations from "../components/SearchDonations"; // 🔍 검색 기능 추가!
 
 export default function DonationsPage() {
   return (
@@ -10,6 +11,7 @@ export default function DonationsPage() {
       <DonationsHeader />
       <FileUpload />
       <DeleteAllButton />
+      <SearchDonations /> {/* 🔍 검색 UI 추가 */}
     </div>
   );
 }
