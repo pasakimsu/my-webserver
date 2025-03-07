@@ -2,13 +2,20 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { db, doc, setDoc, getDoc } from "@/lib/firebase"; // 🔹 getDoc 추가
+import { db, doc, setDoc, getDoc, collection, getDocs } from "@/lib/firebase"; // 🔹 getDocs 추가
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BudgetHeader from "../components/BudgetHeader";
 import BudgetInput from "../components/BudgetInput";
 import BudgetSummary from "../components/BudgetSummary";
 import BudgetDateSelector from "../components/BudgetDateSelector";
 import BudgetSaveButton from "../components/BudgetSaveButton";
+
+const accountNumbers = {
+  생활비: "1000-8998-1075(토스)",
+  적금: "1001-0319-4099(토스)",
+  투자: "321-8556-5901(kb증권)",
+  가족: "1000-8345-4263(토스)",
+};
 
 const numberToKorean = (num: number): string => {
   const units = ["", "만", "억", "조"];
@@ -30,7 +37,7 @@ const numberToKorean = (num: number): string => {
 export default function BudgetPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [year, setYear] = useState<string>(new Date().getFullYear().toString());
+  const [year, setYear] = useState<string>("2025"); // 🔹 2025년 고정
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
   const [allowance, setAllowance] = useState<string>("");
   const [salary, setSalary] = useState<string>("");
@@ -42,12 +49,7 @@ export default function BudgetPage() {
     가족: 0,
   });
 
-  const accountNumbers = {
-    생활비: "1000-8998-1075(토스)",
-    적금: "1001-0319-4099(토스)",
-    투자: "321-8556-5901(kb증권)",
-    가족: "1000-8345-4263(토스)",
-  };
+  const [userBudgets, setUserBudgets] = useState<any[]>([]); // 🔹 사용자별 저장된 금액 리스트
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -55,7 +57,7 @@ export default function BudgetPage() {
       router.push("/login");
     } else {
       setUserId(storedUserId);
-      fetchBudgetData(storedUserId, year, month); // 🔹 데이터 불러오기
+      fetchUserBudgets(year, month); // 🔹 사용자별 저장된 데이터 불러오기
     }
   }, [router, year, month]);
 
@@ -118,29 +120,35 @@ export default function BudgetPage() {
       });
 
       alert("✅ 저장되었습니다!");
-      fetchBudgetData(userId, year, month); // 🔹 저장 후 데이터 불러오기
+      fetchUserBudgets(year, month); // 🔹 저장 후 사용자별 금액 다시 불러오기
     } catch (error) {
       console.error("❌ 저장 실패:", error);
       alert("❌ 저장 중 오류가 발생했습니다.");
     }
   };
 
-  // 🔹 Firestore에서 저장된 데이터 불러오기
-  const fetchBudgetData = async (userId: string, year: string, month: string) => {
+  // 🔹 Firestore에서 사용자별 저장된 금액 가져오기
+  const fetchUserBudgets = async (year: string, month: string) => {
     try {
-      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
-      const docSnap = await getDoc(docRef);
-
-      if (docSnap.exists()) {
-        const data = docSnap.data();
-        setAllocated(data.allocations || { 생활비: 0, 적금: 0, 투자: 0, 가족: 0 });
-      } else {
-        setAllocated({ 생활비: 0, 적금: 0, 투자: 0, 가족: 0 });
-      }
+      const querySnapshot = await getDocs(collection(db, "budgets"));
+      const budgets = querySnapshot.docs
+        .map((doc) => ({
+          userId: doc.data().userId,
+          year: doc.data().year, // 🔹 Firestore에서 가져온 데이터에 year 추가
+          month: doc.data().month, // 🔹 Firestore에서 가져온 데이터에 month 추가
+          생활비: doc.data().allocations?.생활비 || 0,
+          적금: doc.data().allocations?.적금 || 0,
+          투자: doc.data().allocations?.투자 || 0,
+          가족: doc.data().allocations?.가족 || 0,
+        }))
+        .filter((data) => data.year === year && data.month === month); // 🔹 특정 년/월 필터링
+  
+      setUserBudgets(budgets);
     } catch (error) {
       console.error("❌ 데이터 불러오기 오류:", error);
     }
   };
+  
 
   return (
     <ProtectedRoute>
@@ -155,6 +163,35 @@ export default function BudgetPage() {
           </button>
           <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
           <BudgetSaveButton onSave={handleSave} />
+
+          {/* 🔹 사용자별 입력된 금액을 표로 출력 */}
+          {userBudgets.length > 0 && (
+            <div className="mt-6 bg-gray-800 p-4 rounded-lg w-full">
+              <h3 className="text-white text-lg font-semibold mb-3">사용자별 입력된 금액</h3>
+              <table className="w-full text-white border-collapse border border-gray-600">
+                <thead>
+                  <tr className="bg-gray-700">
+                    <th className="border border-gray-600 p-2">사용자</th>
+                    <th className="border border-gray-600 p-2">생활비</th>
+                    <th className="border border-gray-600 p-2">적금</th>
+                    <th className="border border-gray-600 p-2">투자</th>
+                    <th className="border border-gray-600 p-2">가족</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {userBudgets.map((budget, index) => (
+                    <tr key={index} className="text-center">
+                      <td className="border border-gray-600 p-2">{budget.userId}</td>
+                      <td className="border border-gray-600 p-2">{budget.생활비.toLocaleString()}원</td>
+                      <td className="border border-gray-600 p-2">{budget.적금.toLocaleString()}원</td>
+                      <td className="border border-gray-600 p-2">{budget.투자.toLocaleString()}원</td>
+                      <td className="border border-gray-600 p-2">{budget.가족.toLocaleString()}원</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
     </ProtectedRoute>
