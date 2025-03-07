@@ -1,7 +1,20 @@
-import type { NextConfig } from "next";
-
-const nextConfig: NextConfig = {
-  /* config options here */
+module.exports = {
+  images: {
+    domains: ["example.com"], // 필요한 경우 추가
+  },
+  reactStrictMode: true,
+  trailingSlash: true,
+  async headers() {
+    return [
+      {
+        source: "/favicon.ico",
+        headers: [
+          {
+            key: "Content-Type",
+            value: "image/x-icon",
+          },
+        ],
+      },
+    ];
+  },
 };
-
-export default nextConfig;
