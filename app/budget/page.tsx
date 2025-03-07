@@ -1,177 +1,214 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { db, collection, query, where, getDocs, doc, setDoc } from "@/lib/firebase";
-import ProtectedRoute from "@/components/ProtectedRoute";
-import BudgetHeader from "../components/BudgetHeader";
-import BudgetInput from "../components/BudgetInput";
-import BudgetSummary from "../components/BudgetSummary";
-import BudgetDateSelector from "../components/BudgetDateSelector";
-import BudgetSaveButton from "../components/BudgetSaveButton";
-import BudgetComparisonTable from "../components/BudgetComparisonTable";
+import { useState } from "react";
+import { db, collection, addDoc, getDocs, deleteDoc, doc, query, where } from "@/lib/firebase";
 
-// 숫자를 한글 금액으로 변환하는 함수
-const numberToKorean = (num: number): string => {
-  const units = ["", "만", "억", "조"];
-  let result = "";
-  let unitIndex = 0;
+export default function DonationsPage() {
+  const [uploading, setUploading] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [fileName, setFileName] = useState<string>("");
+  const [deleting, setDeleting] = useState(false);
+  const [searchName, setSearchName] = useState(""); // 🔍 검색할 이름
+  const [searchResults, setSearchResults] = useState<any[]>([]); // 🔍 검색 결과
+  const [loading, setLoading] = useState(false); // 검색 로딩 상태
 
-  while (num > 0) {
-    const part = num % 10000;
-    if (part > 0) {
-      result = `${part.toLocaleString()}${units[unitIndex]} ` + result;
-    }
-    num = Math.floor(num / 10000);
-    unitIndex++;
-  }
-
-  return result.trim() + "원";
-};
-
-export default function BudgetPage() {
-  const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
-  const [year] = useState<string>("2025");
-  const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
-  const [allowance, setAllowance] = useState<string>("");
-  const [salary, setSalary] = useState<string>("");
-  const [totalSalary, setTotalSalary] = useState<number>(0);
-  const [allocated, setAllocated] = useState<{ [key: string]: number }>({
-    생활비: 0,
-    적금: 0,
-    투자: 0,
-    가족: 0,
-  });
-  const [userBudgets, setUserBudgets] = useState<any[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-
-  // 계좌번호 추가
-  const accountNumbers = {
-    생활비: "1000-8998-1075(토스)",
-    적금: "1001-0319-4099(토스)",
-    투자: "321-8556-5901(kb증권)",
-    가족: "1000-8345-4263(토스)",
-  };
-
-  useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    if (!storedUserId) {
-      router.push("/login");
-    } else {
-      setUserId(storedUserId);
-    }
-  }, [router]);
-
-  useEffect(() => {
-    const fetchBudgets = async () => {
-      setLoading(true);
-      try {
-        const q = query(collection(db, "budgets"), where("year", "==", "2025"), where("month", "==", month));
-        const querySnapshot = await getDocs(q);
-
-        const budgets = querySnapshot.docs.map((doc) => ({
-          userId: doc.data().userId,
-          생활비: doc.data().allocations.생활비 || 0,
-          적금: doc.data().allocations.적금 || 0,
-          투자: doc.data().allocations.투자 || 0,
-          가족: doc.data().allocations.가족 || 0,
-        }));
-
-        setUserBudgets(budgets);
-      } catch (error) {
-        console.error("데이터 불러오기 실패:", error);
-      }
-      setLoading(false);
-    };
-
-    fetchBudgets();
-  }, [month]);
-
-  const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, "");
-    const numValue = Number(rawValue);
-    if (!isNaN(numValue)) {
-      setAllowance(numValue.toLocaleString());
-      updateTotalSalary(numValue, salary);
+  // 🔹 파일 선택 핸들러
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setFileName(file.name);
     }
   };
 
-  const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, "");
-    const numValue = Number(rawValue);
-    if (!isNaN(numValue)) {
-      setSalary(numValue.toLocaleString());
-      updateTotalSalary(allowance, numValue);
-    }
-  };
+  // 🔹 Firebase에 저장된 모든 부조금 데이터 삭제
+  const handleDeleteAll = async () => {
+    const confirmDelete = confirm("🚨 모든 부조금 데이터를 삭제하시겠습니까?");
+    if (!confirmDelete) return;
 
-  const updateTotalSalary = (allowanceValue: string | number, salaryValue: string | number) => {
-    const rawAllowance = Number(typeof allowanceValue === "string" ? allowanceValue.replace(/,/g, "") : allowanceValue);
-    const rawSalary = Number(typeof salaryValue === "string" ? salaryValue.replace(/,/g, "") : salaryValue);
-    setTotalSalary(rawAllowance + rawSalary);
-  };
-
-  const handleCalculate = () => {
-    if (totalSalary <= 0) return;
-    setAllocated({
-      생활비: Math.floor(totalSalary * 0.25),
-      적금: Math.floor(totalSalary * 0.25),
-      투자: Math.floor(totalSalary * 0.15),
-      가족: Math.floor(totalSalary * 0.1),
-    });
-  };
-
-  const handleSave = async () => {
-    if (!userId) {
-      alert("로그인이 필요합니다.");
-      return;
-    }
-
-    if (totalSalary <= 0) {
-      alert("올바른 수당과 월급을 입력하세요.");
-      return;
-    }
-
+    setDeleting(true);
     try {
-      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
-      await setDoc(docRef, {
-        userId,
-        year,
-        month,
-        allowance: Number(allowance.replace(/,/g, "")),
-        salary: Number(salary.replace(/,/g, "")),
-        totalSalary,
-        allocations: allocated,
-        timestamp: new Date(),
-      });
+      const querySnapshot = await getDocs(collection(db, "donations"));
 
-      alert("저장되었습니다.");
+      if (querySnapshot.empty) {
+        alert("📢 삭제할 데이터가 없습니다.");
+        setDeleting(false);
+        return;
+      }
+
+      for (const document of querySnapshot.docs) {
+        await deleteDoc(doc(db, "donations", document.id));
+      }
+
+      alert("✅ 모든 부조금 데이터가 삭제되었습니다!");
     } catch (error) {
-      console.error("저장 실패:", error);
-      alert("저장 중 오류가 발생했습니다.");
+      console.error("❌ 데이터 삭제 오류:", error);
+      alert("❌ 데이터를 삭제하는 중 오류가 발생했습니다.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // 🔹 CSV 파일 업로드 및 Firebase 저장
+  const handleFileUpload = async () => {
+    if (!selectedFile) {
+      alert("업로드할 파일을 선택하세요.");
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsText(selectedFile, "utf-8");
+      reader.onload = async (e) => {
+        try {
+          let csvData = e.target?.result as string;
+
+          if (csvData.charCodeAt(0) === 0xfeff) {
+            csvData = csvData.slice(1);
+          }
+
+          const rows = csvData.split("\n").map((row) => row.split(","));
+          rows.shift(); // 첫 번째 줄(헤더) 제거
+
+          const jsonData: any[] = rows.map((row) => {
+            const rawAmount = row[3]?.trim() || "0";
+            const cleanedAmount = rawAmount.replace(/,/g, "").trim();
+
+            return {
+              date: row[0]?.trim() || "날짜 없음",
+              name: row[1]?.trim() || "이름 없음",
+              reason: row[2]?.trim() || "사유 없음",
+              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount),
+            };
+          });
+
+          if (jsonData.length === 0) {
+            alert("📢 CSV 파일이 비어 있습니다! ❌");
+            return;
+          }
+
+          console.log(`📢 총 ${jsonData.length}개의 데이터를 업로드합니다.`);
+
+          for (let i = 0; i < jsonData.length; i++) {
+            await addDoc(collection(db, "donations"), jsonData[i]);
+
+            await new Promise((resolve) => setTimeout(resolve, 50));
+          }
+
+          alert(`✅ ${jsonData.length}개의 데이터가 성공적으로 업로드되었습니다!`);
+          setSelectedFile(null);
+          setFileName("");
+        } catch (error) {
+          console.error("❌ CSV 파일 처리 오류:", error);
+          alert("❌ CSV 파일을 처리하는 중 오류가 발생했습니다.");
+        }
+      };
+    } catch (error) {
+      console.error("❌ 파일 업로드 오류:", error);
+      alert("❌ 파일 업로드 중 오류가 발생했습니다.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // 🔹 Firestore에서 해당 이름의 부조금 내역 검색
+  const handleSearch = async () => {
+    if (!searchName.trim()) {
+      alert("검색할 이름을 입력하세요.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const q = query(collection(db, "donations"), where("name", "==", searchName.trim()));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        setSearchResults([]);
+        alert("❌ 해당 이름으로 등록된 부조금 내역이 없습니다.");
+      } else {
+        const results = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setSearchResults(results);
+      }
+    } catch (error) {
+      console.error("❌ 검색 오류:", error);
+      alert("❌ 검색 중 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <ProtectedRoute>
-      <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 p-6">
-        <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
-          <BudgetHeader userId={userId} />
-          <BudgetDateSelector year="2025" month={month} onMonthChange={(e) => setMonth(e.target.value)} />
-          <BudgetInput
-            allowance={allowance}
-            salary={salary}
-            onAllowanceChange={handleAllowanceChange}
-            onSalaryChange={handleSalaryChange}
-          />
-          {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
-          <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">계산하기</button>
-          <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
-          <BudgetSaveButton onSave={handleSave} />
-          {loading ? <p className="text-white mt-6">데이터 불러오는 중...</p> : <BudgetComparisonTable userBudgets={userBudgets} />}
+    <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 p-6 text-white">
+      <h2 className="text-2xl font-bold mb-4">부조금 관리</h2>
+
+      {/* 🔹 파일 선택 버튼 */}
+      <label className="bg-gray-700 text-white p-3 rounded-lg cursor-pointer hover:bg-gray-600 mb-3">
+        📂 파일 선택
+        <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
+      </label>
+
+      {/* 🔹 선택된 파일명 표시 */}
+      {fileName && <p className="text-gray-400 mb-4">📄 {fileName}</p>}
+
+      {/* 🔹 업로드 버튼 */}
+      <button
+        onClick={handleFileUpload}
+        className={`p-3 rounded-lg w-40 mb-4 ${
+          selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"
+        }`}
+        disabled={!selectedFile}
+      >
+        {uploading ? "업로드 중..." : "⬆️ 업로드"}
+      </button>
+
+      {/* 🔹 일괄 삭제 버튼 */}
+      <button
+        onClick={handleDeleteAll}
+        className={`p-3 rounded-lg w-40 mb-6 ${
+          deleting ? "bg-red-700 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"
+        }`}
+        disabled={deleting}
+      >
+        {deleting ? "삭제 중..." : "🗑️ 전체 삭제"}
+      </button>
+
+      {/* 🔍 검색 기능 추가 */}
+      <h2 className="text-2xl font-bold mb-4">부조금 검색</h2>
+      <input
+        type="text"
+        placeholder="이름을 입력하세요"
+        className="p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+        value={searchName}
+        onChange={(e) => setSearchName(e.target.value)}
+      />
+      <button
+        onClick={handleSearch}
+        className={`p-3 rounded-lg w-40 mb-4 ${
+          searchName ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"
+        }`}
+        disabled={!searchName}
+      >
+        {loading ? "검색 중..." : "🔍 검색"}
+      </button>
+
+      {/* 🔹 검색 결과 출력 */}
+      {searchResults.length > 0 && (
+        <div className="w-full max-w-md bg-gray-800 p-4 rounded-lg shadow-lg">
+          <h3 className="text-lg font-semibold mb-2">검색 결과</h3>
+          <ul>
+            {searchResults.map((result) => (
+              <li key={result.id} className="border-b border-gray-600 py-2">
+                📅 <strong>{result.date}</strong> | 👤 <strong>{result.name}</strong> | 💰 <strong>{result.amount.toLocaleString()}원</strong>
+              </li>
+            ))}
+          </ul>
         </div>
-      </div>
-    </ProtectedRoute>
+      )}
+    </div>
   );
 }
