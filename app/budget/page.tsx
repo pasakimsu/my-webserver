@@ -2,14 +2,13 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { db, doc, setDoc } from "@/lib/firebase";
+import { db, doc, setDoc, getDoc } from "@/lib/firebase"; // 🔹 getDoc 추가
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BudgetHeader from "../components/BudgetHeader";
 import BudgetInput from "../components/BudgetInput";
 import BudgetSummary from "../components/BudgetSummary";
 import BudgetDateSelector from "../components/BudgetDateSelector";
 import BudgetSaveButton from "../components/BudgetSaveButton";
-
 
 const numberToKorean = (num: number): string => {
   const units = ["", "만", "억", "조"];
@@ -56,8 +55,9 @@ export default function BudgetPage() {
       router.push("/login");
     } else {
       setUserId(storedUserId);
+      fetchBudgetData(storedUserId, year, month); // 🔹 데이터 불러오기
     }
-  }, [router]);
+  }, [router, year, month]);
 
   const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const rawValue = e.target.value.replace(/,/g, "");
@@ -117,10 +117,28 @@ export default function BudgetPage() {
         timestamp: new Date(),
       });
 
-      alert("저장되었습니다.");
+      alert("✅ 저장되었습니다!");
+      fetchBudgetData(userId, year, month); // 🔹 저장 후 데이터 불러오기
     } catch (error) {
-      console.error("저장 실패:", error);
-      alert("저장 중 오류가 발생했습니다.");
+      console.error("❌ 저장 실패:", error);
+      alert("❌ 저장 중 오류가 발생했습니다.");
+    }
+  };
+
+  // 🔹 Firestore에서 저장된 데이터 불러오기
+  const fetchBudgetData = async (userId: string, year: string, month: string) => {
+    try {
+      const docRef = doc(db, "budgets", `${userId}_${year}-${month}`);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        setAllocated(data.allocations || { 생활비: 0, 적금: 0, 투자: 0, 가족: 0 });
+      } else {
+        setAllocated({ 생활비: 0, 적금: 0, 투자: 0, 가족: 0 });
+      }
+    } catch (error) {
+      console.error("❌ 데이터 불러오기 오류:", error);
     }
   };
 
@@ -129,10 +147,12 @@ export default function BudgetPage() {
       <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900">
         <div className="w-full max-w-md p-6 bg-gray-800 rounded-lg shadow-lg">
           <BudgetHeader userId={userId} />
-          <BudgetDateSelector year="2025" month={month} onMonthChange={(e) => setMonth(e.target.value)}/>
+          <BudgetDateSelector year="2025" month={month} onMonthChange={(e) => setMonth(e.target.value)} />
           <BudgetInput allowance={allowance} salary={salary} onAllowanceChange={handleAllowanceChange} onSalaryChange={handleSalaryChange} />
           {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
-          <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">계산하기</button>
+          <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">
+            계산하기
+          </button>
           <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
           <BudgetSaveButton onSave={handleSave} />
         </div>
