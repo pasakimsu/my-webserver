@@ -20,7 +20,7 @@ export default function SearchDonations() {
       const q = query(
         collection(db, "donations"),
         where("name", ">=", searchName.trim()),
-        where("name", "<=", searchName.trim() + "\uf8ff")
+        where("name", "<=", searchName.trim() + "\uf8ff") // 🔹 Firestore에서 부분 검색 처리
       );
       const querySnapshot = await getDocs(q);
 
