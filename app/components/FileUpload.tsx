@@ -8,7 +8,6 @@ export default function FileUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
-  // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -17,7 +16,6 @@ export default function FileUpload() {
     }
   };
 
-  // 🔹 Firebase에 CSV 데이터 저장
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert("업로드할 파일을 선택하세요.");
@@ -60,7 +58,6 @@ export default function FileUpload() {
 
           for (let i = 0; i < jsonData.length; i++) {
             await addDoc(collection(db, "donations"), jsonData[i]);
-
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
 
@@ -80,7 +77,7 @@ export default function FileUpload() {
     }
   };
 
-  // 🔹 검색 키워드 배열 생성 (이름의 부분 검색 가능하게)
+  // 🔹 부분 검색을 위해 이름 키워드 배열 생성
   const generateNameKeywords = (name: string): string[] => {
     const keywords = [];
     for (let i = 0; i < name.length; i++) {
@@ -91,16 +88,13 @@ export default function FileUpload() {
 
   return (
     <div className="flex flex-col items-center">
-      {/* 🔹 파일 선택 버튼 */}
       <label className="bg-gray-700 text-white p-3 rounded-lg cursor-pointer hover:bg-gray-600 mb-3">
         📂 파일 선택
         <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
       </label>
 
-      {/* 🔹 선택된 파일명 표시 */}
       {fileName && <p className="text-gray-400 mb-4">📄 {fileName}</p>}
 
-      {/* 🔹 업로드 버튼 */}
       <button
         onClick={handleFileUpload}
         className={`p-3 rounded-lg w-40 mb-4 ${

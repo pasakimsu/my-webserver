@@ -8,7 +8,7 @@ export default function SearchDonations() {
   const [searchResults, setSearchResults] = useState<any[]>([]); // 🔍 검색 결과
   const [loading, setLoading] = useState(false); // 검색 로딩 상태
 
-  // 🔹 Firestore에서 이름의 일부만 입력해도 검색 가능하도록 설정
+  // 🔹 Firestore에서 `nameKeywords` 배열을 이용하여 부분 검색
   const handleSearch = async () => {
     if (!searchName.trim()) {
       alert("검색할 이름을 입력하세요.");
@@ -19,8 +19,7 @@ export default function SearchDonations() {
     try {
       const q = query(
         collection(db, "donations"),
-        where("name", ">=", searchName.trim()),
-        where("name", "<=", searchName.trim() + "\uf8ff") // 🔹 Firestore에서 부분 검색 처리
+        where("nameKeywords", "array-contains", searchName.trim()) // 🔹 키워드 배열에서 검색
       );
       const querySnapshot = await getDocs(q);
 
