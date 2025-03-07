@@ -8,6 +8,7 @@ export default function FileUpload() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
 
+  // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
@@ -16,6 +17,7 @@ export default function FileUpload() {
     }
   };
 
+  // 🔹 Firebase에 CSV 데이터 저장
   const handleFileUpload = async () => {
     if (!selectedFile) {
       alert("업로드할 파일을 선택하세요.");
@@ -29,19 +31,27 @@ export default function FileUpload() {
       reader.onload = async (e) => {
         try {
           let csvData = e.target?.result as string;
+
           if (csvData.charCodeAt(0) === 0xfeff) {
             csvData = csvData.slice(1);
           }
 
           const rows = csvData.split("\n").map((row) => row.split(","));
-          rows.shift();
+          rows.shift(); // 첫 번째 줄(헤더) 제거
 
-          const jsonData: any[] = rows.map((row) => ({
-            date: row[0]?.trim() || "날짜 없음",
-            name: row[1]?.trim() || "이름 없음",
-            reason: row[2]?.trim() || "사유 없음",
-            amount: isNaN(Number(row[3]?.replace(/,/g, "").trim())) ? 0 : Number(row[3]?.replace(/,/g, "").trim()),
-          }));
+          const jsonData: any[] = rows.map((row) => {
+            const rawAmount = row[3]?.trim() || "0";
+            const cleanedAmount = rawAmount.replace(/,/g, "").trim();
+            const name = row[1]?.trim() || "이름 없음";
+
+            return {
+              date: row[0]?.trim() || "날짜 없음",
+              name: name,
+              nameKeywords: generateNameKeywords(name), // 🔹 키워드 배열 추가
+              reason: row[2]?.trim() || "사유 없음",
+              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount),
+            };
+          });
 
           if (jsonData.length === 0) {
             alert("📢 CSV 파일이 비어 있습니다! ❌");
@@ -50,6 +60,7 @@ export default function FileUpload() {
 
           for (let i = 0; i < jsonData.length; i++) {
             await addDoc(collection(db, "donations"), jsonData[i]);
+
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
 
@@ -69,18 +80,32 @@ export default function FileUpload() {
     }
   };
 
+  // 🔹 검색 키워드 배열 생성 (이름의 부분 검색 가능하게)
+  const generateNameKeywords = (name: string): string[] => {
+    const keywords = [];
+    for (let i = 0; i < name.length; i++) {
+      keywords.push(name.slice(i));
+    }
+    return keywords;
+  };
+
   return (
     <div className="flex flex-col items-center">
+      {/* 🔹 파일 선택 버튼 */}
       <label className="bg-gray-700 text-white p-3 rounded-lg cursor-pointer hover:bg-gray-600 mb-3">
         📂 파일 선택
         <input type="file" accept=".csv" onChange={handleFileChange} className="hidden" />
       </label>
 
+      {/* 🔹 선택된 파일명 표시 */}
       {fileName && <p className="text-gray-400 mb-4">📄 {fileName}</p>}
 
+      {/* 🔹 업로드 버튼 */}
       <button
         onClick={handleFileUpload}
-        className={`p-3 rounded-lg w-40 mb-4 ${selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"}`}
+        className={`p-3 rounded-lg w-40 mb-4 ${
+          selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"
+        }`}
         disabled={!selectedFile}
       >
         {uploading ? "업로드 중..." : "⬆️ 업로드"}

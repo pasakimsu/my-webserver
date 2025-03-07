@@ -11,7 +11,7 @@ export default function DonationsPage() {
       <DonationsHeader />
       <FileUpload />
       <DeleteAllButton />
-      <SearchDonations /> {/* 🔍 검색 UI 추가 */}
+      <SearchDonations /> {/* 🔍 부분 검색 UI 추가 */}
     </div>
   );
 }
