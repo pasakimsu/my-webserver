@@ -78,13 +78,17 @@ export default function FileUpload() {
     }
   };
 
-  // 🔹 부분 검색을 위해 이름 키워드 배열 생성
+  // 🔹 **부분 검색을 위해 이름 키워드 배열 생성 (모든 연속적인 부분 문자열 추가)**
   const generateNameKeywords = (name: string): string[] => {
-    const keywords = [];
+    const keywords = new Set<string>();
+
     for (let i = 0; i < name.length; i++) {
-      keywords.push(name.substring(i)); // 부분 문자열을 만들어 배열에 저장
+      for (let j = i + 1; j <= name.length; j++) {
+        keywords.add(name.substring(i, j)); // 모든 연속된 부분 문자열을 추가
+      }
     }
-    return keywords;
+
+    return Array.from(keywords);
   };
 
   return (
