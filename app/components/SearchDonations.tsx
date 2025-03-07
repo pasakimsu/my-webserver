@@ -1,14 +1,15 @@
-"use client";
-
 import { useState } from "react";
-import { db, collection, getDocs, query, where } from "@/lib/firebase";
+import { 
+  db, collection, getDocs, query, where, 
+  orderBy, startAt, endAt 
+} from "@/lib/firebase"; // ✅ `orderBy`, `startAt`, `endAt` 가져오기
 
 export default function SearchDonations() {
-  const [searchName, setSearchName] = useState(""); // 🔍 검색할 이름
-  const [searchResults, setSearchResults] = useState<any[]>([]); // 🔍 검색 결과
-  const [loading, setLoading] = useState(false); // 검색 로딩 상태
+  const [searchName, setSearchName] = useState(""); 
+  const [searchResults, setSearchResults] = useState<any[]>([]); 
+  const [loading, setLoading] = useState(false); 
 
-  // 🔹 Firestore에서 `nameKeywords` 배열을 이용하여 부분 검색
+  // 🔹 Firestore에서 `startAt()` & `endAt()` 이용한 부분 검색
   const handleSearch = async () => {
     if (!searchName.trim()) {
       alert("검색할 이름을 입력하세요.");
@@ -19,8 +20,11 @@ export default function SearchDonations() {
     try {
       const q = query(
         collection(db, "donations"),
-        where("nameKeywords", "array-contains", searchName.trim()) // 🔹 키워드 배열에서 검색
+        orderBy("name"), // ✅ `name` 필드 정렬
+        startAt(searchName.trim()), 
+        endAt(searchName.trim() + "\uf8ff") 
       );
+
       const querySnapshot = await getDocs(q);
 
       if (querySnapshot.empty) {
@@ -61,7 +65,6 @@ export default function SearchDonations() {
         {loading ? "검색 중..." : "🔍 검색"}
       </button>
 
-      {/* 🔹 검색 결과 출력 */}
       {searchResults.length > 0 ? (
         <ul className="mt-3">
           {searchResults.map((result) => (
