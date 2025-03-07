@@ -1,34 +1,49 @@
 "use client";
 
 import { useState } from "react";
-import { db, collection, addDoc } from "@/lib/firebase";
+import { db, collection, addDoc, getDocs, deleteDoc, doc } from "@/lib/firebase";
 
 export default function DonationsPage() {
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string>("");
+  const [deleting, setDeleting] = useState(false);
 
   // 🔹 파일 선택 핸들러
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
 
     if (file) {
-      // 🔹 한셀 .cell 파일이면 업로드 불가능 경고
-      if (file.name.endsWith(".cell")) {
-        alert(
-          "⚠️ 한셀(.cell) 파일은 직접 업로드할 수 없습니다. \n\n📌 해결 방법:\n✅ 한셀에서 '다른 이름으로 저장' → 'CSV (.csv)'로 변환 후 업로드하세요!"
-        );
-        return;
-      }
-
-      // 🔹 파일 크기 제한 (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        alert("파일 크기가 너무 큽니다. 10MB 이하의 파일만 업로드 가능합니다.");
-        return;
-      }
-
       setSelectedFile(file);
       setFileName(file.name);
+    }
+  };
+
+  // 🔹 Firebase에 저장된 모든 부조금 데이터 삭제
+  const handleDeleteAll = async () => {
+    const confirmDelete = confirm("🚨 모든 부조금 데이터를 삭제하시겠습니까?");
+    if (!confirmDelete) return;
+
+    setDeleting(true);
+    try {
+      const querySnapshot = await getDocs(collection(db, "donations"));
+
+      if (querySnapshot.empty) {
+        alert("📢 삭제할 데이터가 없습니다.");
+        setDeleting(false);
+        return;
+      }
+
+      for (const document of querySnapshot.docs) {
+        await deleteDoc(doc(db, "donations", document.id));
+      }
+
+      alert("✅ 모든 부조금 데이터가 삭제되었습니다!");
+    } catch (error) {
+      console.error("❌ 데이터 삭제 오류:", error);
+      alert("❌ 데이터를 삭제하는 중 오류가 발생했습니다.");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -42,32 +57,49 @@ export default function DonationsPage() {
     setUploading(true);
     try {
       const reader = new FileReader();
-      reader.readAsText(selectedFile, "utf-8"); // CSV 파일 읽기
+      reader.readAsText(selectedFile, "utf-8"); // ✅ UTF-8 인코딩 강제 적용
       reader.onload = async (e) => {
         try {
-          const csvData = e.target?.result as string;
+          let csvData = e.target?.result as string;
+
+          // ✅ UTF-8 BOM 처리 (엑셀에서 저장한 CSV 인코딩 보정)
+          if (csvData.charCodeAt(0) === 0xfeff) {
+            csvData = csvData.slice(1);
+          }
+
           const rows = csvData.split("\n").map((row) => row.split(",")); // 쉼표로 데이터 분리
 
           // 🔹 첫 번째 줄(헤더) 제거
           rows.shift();
 
-          const jsonData: any[] = rows.map((row) => ({
-            date: row[0]?.trim() || "",
-            name: row[1]?.trim() || "",
-            reason: row[2]?.trim() || "",
-            amount: Number(row[3]?.trim()) || 0,
-          }));
+          const jsonData: any[] = rows.map((row) => {
+            const rawAmount = row[3]?.trim() || "0"; // ✅ 빈 값이면 "0"으로 설정
+            const cleanedAmount = rawAmount.replace(/,/g, "").trim(); // ✅ 쉼표 제거 & 공백 제거
+
+            return {
+              date: row[0]?.trim() || "날짜 없음",
+              name: row[1]?.trim() || "이름 없음",
+              reason: row[2]?.trim() || "사유 없음",
+              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount), // ✅ 숫자가 아니면 0으로 변환
+            };
+          });
 
           if (jsonData.length === 0) {
-            alert("📢 CSV 파일이 비어 있습니다! ❌\n\n📌 해결 방법:\n✅ 한셀에서 직접 열어 데이터가 있는지 확인\n✅ '다른 이름으로 저장' 후 CSV 형식으로 다시 저장 후 업로드");
+            alert("📢 CSV 파일이 비어 있습니다! ❌");
             return;
           }
 
-          for (const row of jsonData) {
-            await addDoc(collection(db, "donations"), row);
+          console.log(`📢 총 ${jsonData.length}개의 데이터를 업로드합니다.`);
+
+          // ✅ Firestore 배치 저장 및 딜레이 적용 (속도 제한 방지)
+          for (let i = 0; i < jsonData.length; i++) {
+            await addDoc(collection(db, "donations"), jsonData[i]);
+
+            // 🔹 50ms 대기 → Firebase 쓰기 제한 방지
+            await new Promise((resolve) => setTimeout(resolve, 50));
           }
 
-          alert("✅ 업로드 완료!");
+          alert(`✅ ${jsonData.length}개의 데이터가 성공적으로 업로드되었습니다!`);
           setSelectedFile(null);
           setFileName("");
         } catch (error) {
@@ -99,10 +131,19 @@ export default function DonationsPage() {
       {/* 🔹 업로드 버튼 */}
       <button
         onClick={handleFileUpload}
-        className={`p-2 rounded ${selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"}`}
+        className={`p-2 rounded mb-3 ${selectedFile ? "bg-blue-500 hover:bg-blue-600" : "bg-gray-500 cursor-not-allowed"}`}
         disabled={!selectedFile}
       >
         {uploading ? "업로드 중..." : "업로드"}
+      </button>
+
+      {/* 🔹 일괄 삭제 버튼 */}
+      <button
+        onClick={handleDeleteAll}
+        className={`p-2 rounded ${deleting ? "bg-red-700 cursor-not-allowed" : "bg-red-500 hover:bg-red-600"}`}
+        disabled={deleting}
+      >
+        {deleting ? "삭제 중..." : "⚠️ 전체 삭제"}
       </button>
     </div>
   );
