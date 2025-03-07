@@ -38,16 +38,13 @@ export default function FileUpload() {
           rows.shift(); // 첫 번째 줄(헤더) 제거
 
           const jsonData: any[] = rows.map((row) => {
-            const rawAmount = row[3]?.trim() || "0";
-            const cleanedAmount = rawAmount.replace(/,/g, "").trim();
             const name = row[1]?.trim() || "이름 없음";
-
             return {
               date: row[0]?.trim() || "날짜 없음",
               name: name,
-              nameKeywords: generateNameKeywords(name), // 🔹 키워드 배열 추가
+              nameKeywords: generateNameKeywords(name), // 🔹 검색 키워드 배열 추가
               reason: row[2]?.trim() || "사유 없음",
-              amount: isNaN(Number(cleanedAmount)) ? 0 : Number(cleanedAmount),
+              amount: isNaN(Number(row[3]?.replace(/,/g, "").trim())) ? 0 : Number(row[3]?.replace(/,/g, "").trim()),
             };
           });
 
@@ -81,7 +78,7 @@ export default function FileUpload() {
   const generateNameKeywords = (name: string): string[] => {
     const keywords = [];
     for (let i = 0; i < name.length; i++) {
-      keywords.push(name.slice(i));
+      keywords.push(name.substring(i)); // 부분 문자열을 만들어 배열에 저장
     }
     return keywords;
   };
