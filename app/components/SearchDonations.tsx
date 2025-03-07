@@ -52,6 +52,7 @@ export default function SearchDonations() {
         className="p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
         value={searchName}
         onChange={(e) => setSearchName(e.target.value)}
+        onKeyDown={(e) => e.key === "Enter" && handleSearch()} // 🔍 Enter 키 검색 기능 추가
       />
 
       <button
