@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { db, doc, setDoc, getDoc, collection, getDocs } from "@/lib/firebase"; // 🔹 getDocs 추가
+import { db, doc, setDoc, collection, getDocs } from "@/lib/firebase"; 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import BudgetHeader from "../components/BudgetHeader";
 import BudgetInput from "../components/BudgetInput";
@@ -17,27 +17,10 @@ const accountNumbers = {
   가족: "1000-8345-4263(토스)",
 };
 
-const numberToKorean = (num: number): string => {
-  const units = ["", "만", "억", "조"];
-  let result = "";
-  let unitIndex = 0;
-
-  while (num > 0) {
-    const part = num % 10000;
-    if (part > 0) {
-      result = `${part.toLocaleString()}${units[unitIndex]} ` + result;
-    }
-    num = Math.floor(num / 10000);
-    unitIndex++;
-  }
-
-  return result.trim() + "원";
-};
-
 export default function BudgetPage() {
   const router = useRouter();
   const [userId, setUserId] = useState<string | null>(null);
-  const [year, setYear] = useState<string>("2025"); // 🔹 2025년 고정
+  const [year, setYear] = useState<string>("2025"); 
   const [month, setMonth] = useState<string>((new Date().getMonth() + 1).toString().padStart(2, "0"));
   const [allowance, setAllowance] = useState<string>("");
   const [salary, setSalary] = useState<string>("");
@@ -49,7 +32,7 @@ export default function BudgetPage() {
     가족: 0,
   });
 
-  const [userBudgets, setUserBudgets] = useState<any[]>([]); // 🔹 사용자별 저장된 금액 리스트
+  const [userBudgets, setUserBudgets] = useState<any[]>([]);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -57,34 +40,31 @@ export default function BudgetPage() {
       router.push("/login");
     } else {
       setUserId(storedUserId);
-      fetchUserBudgets(year, month); // 🔹 사용자별 저장된 데이터 불러오기
+      fetchUserBudgets(year, month);
     }
   }, [router, year, month]);
 
+  // 🔹 수당 및 월급 입력 핸들러
   const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, "");
-    const numValue = Number(rawValue);
-    if (!isNaN(numValue)) {
-      setAllowance(numValue.toLocaleString());
-      updateTotalSalary(numValue, salary);
-    }
+    const numValue = parseInt(e.target.value.replace(/,/g, ""), 10) || 0;
+    setAllowance(numValue.toLocaleString());
+    updateTotalSalary(numValue, salary);
   };
 
   const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/,/g, "");
-    const numValue = Number(rawValue);
-    if (!isNaN(numValue)) {
-      setSalary(numValue.toLocaleString());
-      updateTotalSalary(allowance, numValue);
-    }
+    const numValue = parseInt(e.target.value.replace(/,/g, ""), 10) || 0;
+    setSalary(numValue.toLocaleString());
+    updateTotalSalary(allowance, numValue);
   };
 
+  // 🔹 총 월급 계산
   const updateTotalSalary = (allowanceValue: string | number, salaryValue: string | number) => {
-    const rawAllowance = Number(typeof allowanceValue === "string" ? allowanceValue.replace(/,/g, "") : allowanceValue);
-    const rawSalary = Number(typeof salaryValue === "string" ? salaryValue.replace(/,/g, "") : salaryValue);
+    const rawAllowance = typeof allowanceValue === "string" ? parseInt(allowanceValue.replace(/,/g, ""), 10) || 0 : allowanceValue;
+    const rawSalary = typeof salaryValue === "string" ? parseInt(salaryValue.replace(/,/g, ""), 10) || 0 : salaryValue;
     setTotalSalary(rawAllowance + rawSalary);
   };
 
+  // 🔹 계산하기 버튼
   const handleCalculate = () => {
     if (totalSalary <= 0) return;
     setAllocated({
@@ -95,6 +75,7 @@ export default function BudgetPage() {
     });
   };
 
+  // 🔹 데이터 저장
   const handleSave = async () => {
     if (!userId) {
       alert("로그인이 필요합니다.");
@@ -112,15 +93,15 @@ export default function BudgetPage() {
         userId,
         year,
         month,
-        allowance: Number(allowance.replace(/,/g, "")), // 5일 수당
-        salary: Number(salary.replace(/,/g, "")), // 20일 월급
+        allowance: parseInt(allowance.replace(/,/g, ""), 10) || 0,
+        salary: parseInt(salary.replace(/,/g, ""), 10) || 0,
         totalSalary,
         allocations: allocated,
         timestamp: new Date(),
       });
 
       alert("✅ 저장되었습니다!");
-      fetchUserBudgets(year, month); // 🔹 저장 후 사용자별 금액 다시 불러오기
+      fetchUserBudgets(year, month);
     } catch (error) {
       console.error("❌ 저장 실패:", error);
       alert("❌ 저장 중 오류가 발생했습니다.");
@@ -134,21 +115,20 @@ export default function BudgetPage() {
       const budgets = querySnapshot.docs
         .map((doc) => ({
           userId: doc.data().userId,
-          year: doc.data().year, // 🔹 Firestore에서 가져온 데이터에 year 추가
-          month: doc.data().month, // 🔹 Firestore에서 가져온 데이터에 month 추가
+          year: doc.data().year,
+          month: doc.data().month,
           생활비: doc.data().allocations?.생활비 || 0,
           적금: doc.data().allocations?.적금 || 0,
           투자: doc.data().allocations?.투자 || 0,
           가족: doc.data().allocations?.가족 || 0,
         }))
-        .filter((data) => data.year === year && data.month === month); // 🔹 특정 년/월 필터링
+        .filter((data) => data.year === year && data.month === month); 
   
       setUserBudgets(budgets);
     } catch (error) {
       console.error("❌ 데이터 불러오기 오류:", error);
     }
   };
-  
 
   return (
     <ProtectedRoute>
@@ -157,12 +137,18 @@ export default function BudgetPage() {
           <BudgetHeader userId={userId} />
           <BudgetDateSelector year="2025" month={month} onMonthChange={(e) => setMonth(e.target.value)} />
           <BudgetInput allowance={allowance} salary={salary} onAllowanceChange={handleAllowanceChange} onSalaryChange={handleSalaryChange} />
-          {totalSalary > 0 && <p className="text-gray-400 text-sm mb-3">한글 금액: {numberToKorean(totalSalary)}</p>}
-          <button onClick={handleCalculate} className="w-full bg-blue-500 text-white font-bold py-3 rounded">
-            계산하기
-          </button>
           <BudgetSummary allocated={allocated} accountNumbers={accountNumbers} />
           <BudgetSaveButton onSave={handleSave} />
+
+          {/* ✅ 특정 사용자가 로그인한 경우 "부조금 관리" 버튼 표시 */}
+          {userId === "bak" && (
+            <button
+              onClick={() => router.push("/donations")}
+              className="w-full mt-4 bg-green-500 text-white font-bold py-3 rounded hover:bg-green-600"
+            >
+              부조금 관리
+            </button>
+          )}
 
           {/* 🔹 사용자별 입력된 금액을 표로 출력 */}
           {userBudgets.length > 0 && (
