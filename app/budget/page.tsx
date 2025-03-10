@@ -51,17 +51,18 @@ export default function BudgetPage() {
   const [userBudgets, setUserBudgets] = useState<any[]>([]);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
+
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
     if (!storedUserId) {
       router.push("/login");
     } else {
       setUserId(storedUserId);
-      setIsAdmin(storedUserId === "bak");
+      // 🔹 bak 또는 yong 사용자에게 부조금 관리 버튼 표시
+      setIsAdmin(storedUserId === "bak" || storedUserId === "yong");
       fetchUserBudgets(year, month);
     }
   }, [router, year, month]);
-
   const handleAllowanceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const numValue = parseInt(e.target.value.replace(/,/g, ""), 10) || 0;
     setAllowance(numValue.toLocaleString());
@@ -155,10 +156,10 @@ export default function BudgetPage() {
           <BudgetSaveButton onSave={handleSave} />
 
           {isAdmin && (
-            <button onClick={() => router.push("/donations")} className="w-full bg-purple-500 text-white font-bold py-3 rounded mt-4">
-              부조금 관리
-            </button>
-          )}
+  <button onClick={() => router.push("/donations")} className="w-full bg-purple-500 text-white font-bold py-3 rounded mt-4">
+    부조금 관리
+  </button>
+)}
 
           {userBudgets.length > 0 && (
             <div className="mt-6 bg-gray-800 p-4 rounded-lg w-full">
