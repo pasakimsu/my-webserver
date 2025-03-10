@@ -52,7 +52,6 @@ export default function SearchDonations() {
         className="p-3 mb-3 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
         value={searchName}
         onChange={(e) => setSearchName(e.target.value)}
-        onKeyDown={(e) => e.key === "Enter" && handleSearch()} // 🔍 Enter 키 검색 기능 추가
       />
 
       <button
@@ -72,7 +71,7 @@ export default function SearchDonations() {
           <ul>
             {searchResults.map((result) => (
               <li key={result.id} className="border-b border-gray-600 py-2">
-                📅 <strong>{result.date}</strong> | 👤 <strong>{result.name}</strong> | 💰 <strong>{result.amount.toLocaleString()}원</strong>
+                📅 <strong>{result.date}</strong> | 👤 <strong>{result.name}</strong> | 💰 <strong>{result.amount.toLocaleString()}원</strong> | 📝 <strong>{result.reason}</strong>
               </li>
             ))}
           </ul>
