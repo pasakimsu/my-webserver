@@ -23,45 +23,44 @@ export default function FileUpload() {
       alert("업로드할 파일을 선택하세요.");
       return;
     }
-
+  
     setUploading(true);
     try {
+      const userId = localStorage.getItem("userId");
+      const collectionName = userId === "yong" ? "donations_yong" : "donations";
+  
       const reader = new FileReader();
       reader.readAsText(selectedFile, "utf-8");
       reader.onload = async (e) => {
         try {
           let csvData = e.target?.result as string;
-
           if (csvData.charCodeAt(0) === 0xfeff) {
             csvData = csvData.slice(1);
           }
-
+  
           const rows = csvData.split("\n").map((row) => row.split(","));
-          rows.shift(); // 첫 번째 줄(헤더) 제거
-
-          const jsonData: any[] = rows.map((row) => {
-            const name = row[1]?.trim() || "이름 없음";
-            return {
-              date: row[0]?.trim() || "날짜 없음",
-              name: name,
-              nameKeywords: generateNameKeywords(name), // 🔹 부분 검색을 위한 키워드 배열 추가
-              reason: row[2]?.trim() || "사유 없음",
-              amount: isNaN(Number(row[3]?.replace(/,/g, "").trim()))
-                ? 0
-                : Number(row[3]?.replace(/,/g, "").trim()),
-            };
-          });
-
+          rows.shift();
+  
+          const jsonData = rows.map((row) => ({
+            date: row[0]?.trim() || "날짜 없음",
+            name: row[1]?.trim() || "이름 없음",
+            nameKeywords: generateNameKeywords(row[1]?.trim() || ""),
+            reason: row[2]?.trim() || "사유 없음",
+            amount: isNaN(Number(row[3]?.replace(/,/g, "").trim()))
+              ? 0
+              : Number(row[3]?.replace(/,/g, "").trim()),
+          }));
+  
           if (jsonData.length === 0) {
             alert("📢 CSV 파일이 비어 있습니다! ❌");
             return;
           }
-
+  
           for (let i = 0; i < jsonData.length; i++) {
-            await addDoc(collection(db, "donations"), jsonData[i]);
+            await addDoc(collection(db, collectionName), jsonData[i]);
             await new Promise((resolve) => setTimeout(resolve, 50));
           }
-
+  
           alert(`✅ ${jsonData.length}개의 데이터가 성공적으로 업로드되었습니다!`);
           setSelectedFile(null);
           setFileName("");
@@ -77,6 +76,7 @@ export default function FileUpload() {
       setUploading(false);
     }
   };
+  
 
   // 🔹 **부분 검색을 위해 이름 키워드 배열 생성 (모든 연속적인 부분 문자열 추가)**
   const generateNameKeywords = (name: string): string[] => {

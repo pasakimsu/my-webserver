@@ -9,21 +9,24 @@ export default function DeleteAllButton() {
   const handleDeleteAll = async () => {
     const confirmDelete = confirm("🚨 모든 부조금 데이터를 삭제하시겠습니까?");
     if (!confirmDelete) return;
-
+  
     setDeleting(true);
     try {
-      const querySnapshot = await getDocs(collection(db, "donations"));
-
+      const userId = localStorage.getItem("userId");
+      const collectionName = userId === "yong" ? "donations_yong" : "donations";
+  
+      const querySnapshot = await getDocs(collection(db, collectionName));
+  
       if (querySnapshot.empty) {
         alert("📢 삭제할 데이터가 없습니다.");
         setDeleting(false);
         return;
       }
-
+  
       for (const document of querySnapshot.docs) {
-        await deleteDoc(doc(db, "donations", document.id));
+        await deleteDoc(doc(db, collectionName, document.id));
       }
-
+  
       alert("✅ 모든 부조금 데이터가 삭제되었습니다!");
     } catch (error) {
       console.error("❌ 데이터 삭제 오류:", error);
@@ -32,6 +35,7 @@ export default function DeleteAllButton() {
       setDeleting(false);
     }
   };
+  
 
   return (
     <button

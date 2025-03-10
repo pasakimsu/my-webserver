@@ -13,20 +13,19 @@ export default function DonationsPage() {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
-
-    // 🔹 로그인한 사용자 확인
+  
     if (!storedUserId) {
       router.push("/login");
     } else {
       setUserId(storedUserId);
-
-      // 🔹 bak이 아닌 경우 접근 차단
-      if (storedUserId !== "bak") {
+  
+      if (storedUserId !== "bak" && storedUserId !== "yong") {
         alert("🚨 접근 권한이 없습니다.");
         router.push("/budget");
       }
     }
   }, [router]);
+  
 
   return (
     <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 p-6 text-white">

@@ -14,16 +14,19 @@ export default function SearchDonations() {
       alert("검색할 이름을 입력하세요.");
       return;
     }
-
+  
     setLoading(true);
     try {
+      const userId = localStorage.getItem("userId");
+      const collectionName = userId === "yong" ? "donations_yong" : "donations";
+  
       const q = query(
-        collection(db, "donations"),
-        where("nameKeywords", "array-contains", searchName.trim()) // 🔍 부분 검색 적용
+        collection(db, collectionName),
+        where("nameKeywords", "array-contains", searchName.trim())
       );
-
+  
       const querySnapshot = await getDocs(q);
-
+  
       if (querySnapshot.empty) {
         setSearchResults([]);
         alert("❌ 해당 이름으로 등록된 부조금 내역이 없습니다.");
@@ -41,6 +44,7 @@ export default function SearchDonations() {
       setLoading(false);
     }
   };
+  
 
   return (
     <div className="flex flex-col items-center mt-6">
