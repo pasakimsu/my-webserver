@@ -45,57 +45,8 @@ export default function TaxCalculator() {
   const formatNumber = (value: string) =>
     value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-  // ✅ 입력값 변경 핸들러
   const handleChange = (key: keyof Inputs, value: string) => {
     setInputs((prev) => ({ ...prev, [key]: formatNumber(value) }));
-  };
-
-  // ✅ 계산 실행 함수
-  const handleCalculate = () => {
-    const num = (str: string) => parseInt(str.replace(/,/g, ""), 10) || 0;
-    const { income, credit, debit, market, transport, culture } = inputs;
-
-    const incomeValue = num(income);
-    const minUsage = incomeValue * 0.25;
-    const totalUsage =
-      num(credit) + num(debit) + num(market) + num(transport) + num(culture);
-
-    if (totalUsage <= minUsage) {
-      setResult("소득공제 가능 금액이 없습니다.");
-      return;
-    }
-
-    const excessUsage = totalUsage - minUsage;
-    const creditDeduction = excessUsage * (num(credit) / totalUsage) * 0.15;
-    const debitDeduction = excessUsage * (num(debit) / totalUsage) * 0.3;
-    const basicDeductionBeforeLimit = creditDeduction + debitDeduction;
-
-    const basicDeductionLimit =
-      incomeValue <= 70000000
-        ? 3000000
-        : incomeValue <= 120000000
-        ? 2500000
-        : 2000000;
-    const basicDeduction = Math.min(basicDeductionBeforeLimit, basicDeductionLimit);
-
-    const marketDeduction = Math.min(num(market) * 0.4, 1000000);
-    const transportDeduction = Math.min(num(transport) * 0.4, 1000000);
-    const cultureDeduction = incomeValue <= 70000000 ? Math.min(num(culture) * 0.3, 1000000) : 0;
-
-    const deductionAmount =
-      basicDeduction + marketDeduction + transportDeduction + cultureDeduction;
-
-    setResult(
-      `📌 기준 공제 금액: ${minUsage.toLocaleString()}원\n
-      📌 총 사용 금액: ${totalUsage.toLocaleString()}원\n
-      📌 초과 사용 금액: ${excessUsage.toLocaleString()}원\n
-      ✅ 기본 공제 (한도 적용 전): ${basicDeductionBeforeLimit.toLocaleString()}원\n
-      ✅ 기본 공제 (한도 적용 후): ${basicDeduction.toLocaleString()}원\n
-      🛒 전통시장 공제: ${marketDeduction.toLocaleString()}원\n
-      🚇 대중교통 공제: ${transportDeduction.toLocaleString()}원\n
-      🎭 문화생활 공제: ${cultureDeduction.toLocaleString()}원\n
-      💰 총 소득공제 금액: ${deductionAmount.toLocaleString()}원 (${numberToKorean(deductionAmount)})`
-    );
   };
 
   return (
@@ -104,32 +55,34 @@ export default function TaxCalculator() {
       <div className="w-1/2 p-4">
         <h1 className="text-xl font-bold mb-4">소득공제 계산기</h1>
 
-        {([
-          ["연봉", "income"],
-          ["신용카드", "credit"],
-          ["체크카드", "debit"],
-          ["전통시장", "market"],
-          ["대중교통", "transport"],
-          ["문화생활", "culture"],
-        ] as const).map(([label, key], idx) => (
-          <div key={idx} className="mb-3">
-            <label className="block text-sm text-gray-300">{label}</label>
-            <input
-              type="text"
-              placeholder={label}
-              value={inputs[key]}
-              onChange={(e) => handleChange(key, e.target.value)}
-              className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400 text-center"
-            />
-            <p className="text-gray-400 text-xs mt-1 text-center">
-              {inputs[key] ? numberToKorean(parseInt(inputs[key].replace(/,/g, ""), 10)) : ""}
-            </p>
-          </div>
-        ))}
+        <div className="grid grid-cols-2 gap-4">
+          {[
+            ["연봉", "income"],
+            ["신용카드", "credit"],
+            ["체크카드", "debit"],
+            ["전통시장", "market"],
+            ["대중교통", "transport"],
+            ["문화생활", "culture"],
+          ].map(([label, key], index) => (
+            <div key={index} className="mb-3">
+              <label className="block text-sm text-gray-300">{label}</label>
+              <input
+                type="text"
+                placeholder={label}
+                value={inputs[key as keyof Inputs]} // ✅ keyof 사용하여 타입 안전성 확보
+                onChange={(e) => handleChange(key as keyof Inputs, e.target.value)}
+                className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400 text-center"
+              />
+              <p className="text-gray-400 text-xs mt-1 text-center">
+                {inputs[key as keyof Inputs] ? numberToKorean(parseInt(inputs[key as keyof Inputs].replace(/,/g, ""), 10)) : ""}
+              </p>
+            </div>
+          ))}
+        </div>
 
         {/* 계산 버튼 */}
         <button
-          onClick={handleCalculate}
+          onClick={() => setResult("계산 결과가 여기에 표시됩니다.")}
           className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
         >
           계산하기
