@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { db, doc, setDoc } from "@/lib/firebase";
 
+// 금액을 한글 단위로 변환하는 함수
 const numberToKorean = (num: number): string => {
   const units = ["", "만", "억", "조"];
   let result = "";
@@ -20,105 +21,115 @@ const numberToKorean = (num: number): string => {
   return result.trim() + "원";
 };
 
+// ✅ "inputs" 객체의 타입을 명확히 지정
+interface Inputs {
+  income: string;
+  credit: string;
+  debit: string;
+  market: string;
+  transport: string;
+  culture: string;
+}
+
 export default function TaxCalculator() {
-  const [income, setIncome] = useState("");
-  const [credit, setCredit] = useState("");
-  const [debit, setDebit] = useState("");
-  const [market, setMarket] = useState("");
-  const [transport, setTransport] = useState("");
-  const [culture, setCulture] = useState("");
+  const [inputs, setInputs] = useState<Inputs>({
+    income: "",
+    credit: "",
+    debit: "",
+    market: "",
+    transport: "",
+    culture: "",
+  });
   const [result, setResult] = useState<string | null>(null);
 
-  const formatNumber = (value: string) => {
-    return value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  const formatNumber = (value: string) =>
+    value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+
+  // ✅ "key"가 정확한 Inputs 객체의 속성 중 하나라는 것을 명확히 지정
+  const handleChange = (key: keyof Inputs, value: string) => {
+    setInputs((prev) => ({ ...prev, [key]: formatNumber(value) }));
   };
 
   const handleCalculate = () => {
-    const incomeValue = parseInt(income.replace(/,/g, ""), 10) || 0;
-    const creditValue = parseInt(credit.replace(/,/g, ""), 10) || 0;
-    const debitValue = parseInt(debit.replace(/,/g, ""), 10) || 0;
-    const marketValue = parseInt(market.replace(/,/g, ""), 10) || 0;
-    const transportValue = parseInt(transport.replace(/,/g, ""), 10) || 0;
-    const cultureValue = parseInt(culture.replace(/,/g, ""), 10) || 0;
+    const num = (str: string) => parseInt(str.replace(/,/g, ""), 10) || 0;
+    const { income, credit, debit, market, transport, culture } = inputs;
 
+    const incomeValue = num(income);
     const minUsage = incomeValue * 0.25;
-    const totalUsage = creditValue + debitValue + marketValue + transportValue + cultureValue;
+    const totalUsage =
+      num(credit) + num(debit) + num(market) + num(transport) + num(culture);
 
-    let deductionAmount = 0;
-    let details = "";
-
-    if (totalUsage > minUsage) {
-      const excessUsage = totalUsage - minUsage;
-      const creditDeduction = excessUsage * (creditValue / totalUsage) * 0.15;
-      const debitDeduction = excessUsage * (debitValue / totalUsage) * 0.3;
-      const basicDeductionBeforeLimit = creditDeduction + debitDeduction;
-
-      const basicDeductionLimit = incomeValue <= 70000000 ? 3000000 : incomeValue <= 120000000 ? 2500000 : 2000000;
-      const basicDeduction = Math.min(basicDeductionBeforeLimit, basicDeductionLimit);
-
-      const marketDeduction = Math.min(marketValue * 0.4, 1000000);
-      const transportDeduction = Math.min(transportValue * 0.4, 1000000);
-      const cultureDeduction = incomeValue <= 70000000 ? Math.min(cultureValue * 0.3, 1000000) : 0;
-
-      deductionAmount = basicDeduction + marketDeduction + transportDeduction + cultureDeduction;
-
-      details = `
-        기준 공제 금액: ${minUsage.toLocaleString()}원
-        총 사용 금액: ${totalUsage.toLocaleString()}원
-        초과 사용 금액: ${(excessUsage).toLocaleString()}원
-        기본 공제 (한도 전): ${basicDeductionBeforeLimit.toLocaleString()}원
-        기본 공제 한도 적용: ${basicDeduction.toLocaleString()}원
-        전통시장 공제: ${marketDeduction.toLocaleString()}원
-        대중교통 공제: ${transportDeduction.toLocaleString()}원
-        문화생활 공제: ${cultureDeduction.toLocaleString()}원
-        총 소득공제 금액: ${deductionAmount.toLocaleString()}원 (${numberToKorean(deductionAmount)})
-      `;
-    } else {
-      details = "소득공제 가능 금액이 없습니다.";
+    if (totalUsage <= minUsage) {
+      setResult("소득공제 가능 금액이 없습니다.");
+      return;
     }
 
-    setResult(details);
+    const excessUsage = totalUsage - minUsage;
+    const creditDeduction = excessUsage * (num(credit) / totalUsage) * 0.15;
+    const debitDeduction = excessUsage * (num(debit) / totalUsage) * 0.3;
+    const basicDeductionBeforeLimit = creditDeduction + debitDeduction;
+
+    const basicDeductionLimit =
+      incomeValue <= 70000000
+        ? 3000000
+        : incomeValue <= 120000000
+        ? 2500000
+        : 2000000;
+    const basicDeduction = Math.min(basicDeductionBeforeLimit, basicDeductionLimit);
+
+    const marketDeduction = Math.min(num(market) * 0.4, 1000000);
+    const transportDeduction = Math.min(num(transport) * 0.4, 1000000);
+    const cultureDeduction = incomeValue <= 70000000 ? Math.min(num(culture) * 0.3, 1000000) : 0;
+
+    const deductionAmount =
+      basicDeduction + marketDeduction + transportDeduction + cultureDeduction;
+
+    setResult(
+      `총 공제액: ${deductionAmount.toLocaleString()}원 (${numberToKorean(
+        deductionAmount
+      )})`
+    );
   };
 
   return (
     <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 text-white p-6">
-      <h1 className="text-2xl font-bold mb-4">소득공제 계산기</h1>
+      <h1 className="text-xl font-bold mb-4">소득공제 계산기</h1>
 
-      {/* 금액 입력 필드 */}
-      {[
-        { label: "연봉 (원)", value: income, setter: setIncome },
-        { label: "신용카드 사용금액 (원)", value: credit, setter: setCredit },
-        { label: "체크카드 및 현금영수증 (원)", value: debit, setter: setDebit },
-        { label: "전통시장 사용금액 (원)", value: market, setter: setMarket },
-        { label: "대중교통 사용금액 (원)", value: transport, setter: setTransport },
-        { label: "문화생활 사용금액 (원)", value: culture, setter: setCulture },
-      ].map(({ label, value, setter }, idx) => (
-        <div key={idx} className="w-2/3 mb-3">
-          <label className="block text-sm text-gray-300">{label}</label>
+      {/* 입력 필드 */}
+      {([
+        ["연봉", "income"],
+        ["신용카드", "credit"],
+        ["체크카드", "debit"],
+        ["전통시장", "market"],
+        ["대중교통", "transport"],
+        ["문화생활", "culture"],
+      ] as const).map(([label, key], idx) => (
+        <div key={idx} className="w-1/2 mb-2">
           <input
             type="text"
             placeholder={label}
-            value={value}
-            onChange={(e) => setter(formatNumber(e.target.value))}
-            className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+            value={inputs[key]}
+            onChange={(e) => handleChange(key, e.target.value)}
+            className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400 text-center"
           />
-          {/* 한글 금액 변환 표시 */}
-          <p className="text-gray-400 text-sm mt-1">{value ? numberToKorean(parseInt(value.replace(/,/g, ""), 10)) : ""}</p>
+          <p className="text-gray-400 text-xs mt-1 text-center">
+            {inputs[key] ? numberToKorean(parseInt(inputs[key].replace(/,/g, ""), 10)) : ""}
+          </p>
         </div>
       ))}
 
       {/* 계산 버튼 */}
       <button
         onClick={handleCalculate}
-        className="w-1/3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
+        className="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
       >
         계산하기
       </button>
 
       {/* 결과 출력 */}
       {result && (
-        <div className="w-1/3 mt-4 p-3 bg-gray-800 rounded-lg">
-          <p className="text-sm">{result}</p>
+        <div className="w-1/2 mt-3 p-2 bg-gray-800 rounded-lg text-center text-sm">
+          {result}
         </div>
       )}
     </div>
