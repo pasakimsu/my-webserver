@@ -110,14 +110,14 @@ export default function TaxCalculator() {
       {/* 계산 버튼 */}
       <button
         onClick={handleCalculate}
-        className="w-2/3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
+        className="w-1/3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
       >
         계산하기
       </button>
 
       {/* 결과 출력 */}
       {result && (
-        <div className="w-2/3 mt-4 p-3 bg-gray-800 rounded-lg">
+        <div className="w-1/3 mt-4 p-3 bg-gray-800 rounded-lg">
           <p className="text-sm">{result}</p>
         </div>
       )}
