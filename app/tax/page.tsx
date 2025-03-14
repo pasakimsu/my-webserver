@@ -21,7 +21,7 @@ const numberToKorean = (num: number): string => {
   return result.trim() + "원";
 };
 
-// ✅ "inputs" 객체의 타입을 명확히 지정
+// ✅ 입력값을 담을 객체 타입 지정
 interface Inputs {
   income: string;
   credit: string;
@@ -45,11 +45,12 @@ export default function TaxCalculator() {
   const formatNumber = (value: string) =>
     value.replace(/\D/g, "").replace(/\B(?=(\d{3})+(?!\d))/g, ",");
 
-  // ✅ "key"가 정확한 Inputs 객체의 속성 중 하나라는 것을 명확히 지정
+  // ✅ 입력값 변경 핸들러
   const handleChange = (key: keyof Inputs, value: string) => {
     setInputs((prev) => ({ ...prev, [key]: formatNumber(value) }));
   };
 
+  // ✅ 계산 실행 함수
   const handleCalculate = () => {
     const num = (str: string) => parseInt(str.replace(/,/g, ""), 10) || 0;
     const { income, credit, debit, market, transport, culture } = inputs;
@@ -85,53 +86,67 @@ export default function TaxCalculator() {
       basicDeduction + marketDeduction + transportDeduction + cultureDeduction;
 
     setResult(
-      `총 공제액: ${deductionAmount.toLocaleString()}원 (${numberToKorean(
-        deductionAmount
-      )})`
+      `📌 기준 공제 금액: ${minUsage.toLocaleString()}원\n
+      📌 총 사용 금액: ${totalUsage.toLocaleString()}원\n
+      📌 초과 사용 금액: ${excessUsage.toLocaleString()}원\n
+      ✅ 기본 공제 (한도 적용 전): ${basicDeductionBeforeLimit.toLocaleString()}원\n
+      ✅ 기본 공제 (한도 적용 후): ${basicDeduction.toLocaleString()}원\n
+      🛒 전통시장 공제: ${marketDeduction.toLocaleString()}원\n
+      🚇 대중교통 공제: ${transportDeduction.toLocaleString()}원\n
+      🎭 문화생활 공제: ${cultureDeduction.toLocaleString()}원\n
+      💰 총 소득공제 금액: ${deductionAmount.toLocaleString()}원 (${numberToKorean(deductionAmount)})`
     );
   };
 
   return (
-    <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 text-white p-6">
-      <h1 className="text-xl font-bold mb-4">소득공제 계산기</h1>
+    <div className="flex items-start min-h-screen justify-center bg-gray-900 text-white p-6">
+      {/* 왼쪽: 입력 필드 */}
+      <div className="w-1/2 p-4">
+        <h1 className="text-xl font-bold mb-4">소득공제 계산기</h1>
 
-      {/* 입력 필드 */}
-      {([
-        ["연봉", "income"],
-        ["신용카드", "credit"],
-        ["체크카드", "debit"],
-        ["전통시장", "market"],
-        ["대중교통", "transport"],
-        ["문화생활", "culture"],
-      ] as const).map(([label, key], idx) => (
-        <div key={idx} className="w-1/2 mb-2">
-          <input
-            type="text"
-            placeholder={label}
-            value={inputs[key]}
-            onChange={(e) => handleChange(key, e.target.value)}
-            className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400 text-center"
-          />
-          <p className="text-gray-400 text-xs mt-1 text-center">
-            {inputs[key] ? numberToKorean(parseInt(inputs[key].replace(/,/g, ""), 10)) : ""}
-          </p>
-        </div>
-      ))}
+        {([
+          ["연봉", "income"],
+          ["신용카드", "credit"],
+          ["체크카드", "debit"],
+          ["전통시장", "market"],
+          ["대중교통", "transport"],
+          ["문화생활", "culture"],
+        ] as const).map(([label, key], idx) => (
+          <div key={idx} className="mb-3">
+            <label className="block text-sm text-gray-300">{label}</label>
+            <input
+              type="text"
+              placeholder={label}
+              value={inputs[key]}
+              onChange={(e) => handleChange(key, e.target.value)}
+              className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400 text-center"
+            />
+            <p className="text-gray-400 text-xs mt-1 text-center">
+              {inputs[key] ? numberToKorean(parseInt(inputs[key].replace(/,/g, ""), 10)) : ""}
+            </p>
+          </div>
+        ))}
 
-      {/* 계산 버튼 */}
-      <button
-        onClick={handleCalculate}
-        className="w-1/2 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
-      >
-        계산하기
-      </button>
+        {/* 계산 버튼 */}
+        <button
+          onClick={handleCalculate}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
+        >
+          계산하기
+        </button>
+      </div>
 
-      {/* 결과 출력 */}
-      {result && (
-        <div className="w-1/2 mt-3 p-2 bg-gray-800 rounded-lg text-center text-sm">
-          {result}
-        </div>
-      )}
+      {/* 오른쪽: 결과 출력 */}
+      <div className="w-1/2 p-4">
+        <h2 className="text-lg font-semibold mb-3">계산 결과</h2>
+        {result ? (
+          <div className="p-4 bg-gray-800 rounded-lg whitespace-pre-line text-sm">
+            {result}
+          </div>
+        ) : (
+          <p className="text-gray-400">계산 결과가 여기에 표시됩니다.</p>
+        )}
+      </div>
     </div>
   );
 }
