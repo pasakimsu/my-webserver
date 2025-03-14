@@ -80,44 +80,47 @@ export default function TaxCalculator() {
     setResult(details);
   };
 
-  const handleSave = async () => {
-    if (!result) {
-      alert("계산 후 저장하세요.");
-      return;
-    }
-
-    try {
-      const docRef = doc(db, "tax_deductions", new Date().toISOString());
-      await setDoc(docRef, {
-        income,
-        credit,
-        debit,
-        market,
-        transport,
-        culture,
-        result,
-        timestamp: new Date(),
-      });
-      alert("✅ 소득공제 계산 결과가 저장되었습니다!");
-    } catch (error) {
-      console.error("❌ 저장 오류:", error);
-      alert("❌ 저장 중 오류가 발생했습니다.");
-    }
-  };
-
   return (
     <div className="flex flex-col items-center min-h-screen justify-center bg-gray-900 text-white p-6">
       <h1 className="text-2xl font-bold mb-4">소득공제 계산기</h1>
-      <input type="text" placeholder="연봉 (원)" value={income} onChange={(e) => setIncome(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      <input type="text" placeholder="신용카드 사용금액 (원)" value={credit} onChange={(e) => setCredit(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      <input type="text" placeholder="체크카드 및 현금영수증 (원)" value={debit} onChange={(e) => setDebit(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      <input type="text" placeholder="전통시장 사용금액 (원)" value={market} onChange={(e) => setMarket(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      <input type="text" placeholder="대중교통 사용금액 (원)" value={transport} onChange={(e) => setTransport(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      <input type="text" placeholder="문화생활 사용금액 (원)" value={culture} onChange={(e) => setCulture(formatNumber(e.target.value))} className="p-3 w-full mb-3 bg-gray-700 border border-gray-600 rounded" />
-      
-      <button onClick={handleCalculate} className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 rounded mt-3">계산하기</button>
-      {result && <p className="mt-4 p-3 bg-gray-800 rounded-lg">{result}</p>}
-      <button onClick={handleSave} className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 rounded mt-3">저장하기</button>
+
+      {/* 금액 입력 필드 */}
+      {[
+        { label: "연봉 (원)", value: income, setter: setIncome },
+        { label: "신용카드 사용금액 (원)", value: credit, setter: setCredit },
+        { label: "체크카드 및 현금영수증 (원)", value: debit, setter: setDebit },
+        { label: "전통시장 사용금액 (원)", value: market, setter: setMarket },
+        { label: "대중교통 사용금액 (원)", value: transport, setter: setTransport },
+        { label: "문화생활 사용금액 (원)", value: culture, setter: setCulture },
+      ].map(({ label, value, setter }, idx) => (
+        <div key={idx} className="w-2/3 mb-3">
+          <label className="block text-sm text-gray-300">{label}</label>
+          <input
+            type="text"
+            placeholder={label}
+            value={value}
+            onChange={(e) => setter(formatNumber(e.target.value))}
+            className="w-full p-2 border border-gray-600 rounded bg-gray-700 text-white placeholder-gray-400"
+          />
+          {/* 한글 금액 변환 표시 */}
+          <p className="text-gray-400 text-sm mt-1">{value ? numberToKorean(parseInt(value.replace(/,/g, ""), 10)) : ""}</p>
+        </div>
+      ))}
+
+      {/* 계산 버튼 */}
+      <button
+        onClick={handleCalculate}
+        className="w-2/3 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 rounded mt-3"
+      >
+        계산하기
+      </button>
+
+      {/* 결과 출력 */}
+      {result && (
+        <div className="w-2/3 mt-4 p-3 bg-gray-800 rounded-lg">
+          <p className="text-sm">{result}</p>
+        </div>
+      )}
     </div>
   );
 }
